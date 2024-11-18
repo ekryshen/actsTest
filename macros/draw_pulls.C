@@ -3,7 +3,7 @@
 #include "TH1D.h"
 #include "style.h"
 
-void draw_pulls(TString dir = "notpc_pi_16", TString pid = "Pi", double etaMean = 1.6, double minPtMC=0.25, double maxPtMC=0.3){
+void draw_pulls(TString dir = "notpc_pi_16", TString pid = "Pi", double etaMean = 1.6, double minPtMC=0.25, double maxPtMC=0.3, bool refit = 0){
   dir.Append("/");
 //  gStyle->SetStatFontSize(0.08);
   gStyle->SetStatH(0.15);
@@ -11,7 +11,7 @@ void draw_pulls(TString dir = "notpc_pi_16", TString pid = "Pi", double etaMean 
   gStyle->SetStatFormat("6.3g");
   gStyle->SetOptFit(101);
 
-  TFile* f = new TFile(dir + "tracking_efficiency.root");
+  TFile* f = new TFile(dir + (refit ? "tracking_efficiency_refit.root" : "tracking_efficiency.root"));
   TH2D* hResQOPvsPt  = (TH2D*) f->Get(Form("hResQOPvsPt%s%.0f",pid.Data(),etaMean*10));
   TH2D* hResDvsPt    = (TH2D*) f->Get(Form("hResDvsPt%s%.0f",pid.Data(),etaMean*10));
   TH2D* hResZvsPt    = (TH2D*) f->Get(Form("hResZvsPt%s%.0f",pid.Data(),etaMean*10));
@@ -63,5 +63,5 @@ void draw_pulls(TString dir = "notpc_pi_16", TString pid = "Pi", double etaMean 
   SetHisto(hPullZ,Form(";pull z"));
   hPullZ->Draw();
   hPullZ->Fit(fGaus,"LQ","",-4,4);
-  c1->Print(dir+Form("pulls_%s_%.0f_%.0f.png", pid.Data(), etaMean*10, minPtMC*1000));
+  c1->Print(dir+Form(refit ? "pulls_refit_%s_%.0f_%.0f.png" : "pulls_%s_%.0f_%.0f.png", pid.Data(), etaMean*10, minPtMC*1000));
 }

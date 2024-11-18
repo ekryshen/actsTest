@@ -25,14 +25,14 @@ double quadratic_sum(double* x, double* par){
 }
 
 
-void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "notpc_pi_22"){
+void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "notpc_pi_22", bool refit = 0){
   dir1.Append("/");
   dir2.Append("/");
   dir3.Append("/");
 
-  TFile* f1 = new TFile(dir1 + "resolution.root");
-  TFile* f2 = new TFile(dir2 + "resolution.root");
-  TFile* f3 = new TFile(dir3 + "resolution.root");
+  TFile* f1 = new TFile(dir1 + (refit ? "resolution_refit.root" : "resolution.root"));
+  TFile* f2 = new TFile(dir2 + (refit ? "resolution_refit.root" : "resolution.root"));
+  TFile* f3 = new TFile(dir3 + (refit ? "resolution_refit.root" : "resolution.root"));
   TGraph* gRes16 = (TGraph*) f1->Get(Form("gRes%s16",pid.Data()));
   TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
   TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s22",pid.Data()));
@@ -59,8 +59,8 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString d
   // double m = 0.938;    // GeV
   double m = pid.Contains("Pi") ? 0.13957 : 0.938;
   double B = 0.5;             // T
-  double sigma_rf = 0.005;     // cm
-  double d_over_X0 = 0.001067; // 100 us of silicon
+  double sigma_rf = 0.008;     // cm
+  double d_over_X0 = 0.002134; // 100 us of silicon
   double L0 = 0.9; // m
   double N= 4;
   fMS = new TF1("fMS","[0]/sqrt(([0]+1)*([0]-1))*0.0136/(0.3*x/sqrt(x*x+[3]*[3])*[1])*sqrt(([0]+1)*[2])*(1+0.038*log([2]))",0.001,1.1);
@@ -153,13 +153,13 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString d
   gRes19->Draw("same");
   gRes22->Draw("same");
 
-  TLegend* legend = new TLegend(0.45,0.58,0.65,0.75);
+  TLegend* legend = new TLegend(0.45,0.68,0.65,0.85);
   legend->SetBorderSize(0);
   legend->AddEntry(gRes22,"#eta = 2.2","l");
   legend->AddEntry(gRes19,"#eta = 1.9","l");
   legend->AddEntry(gRes16,"#eta = 1.6","l");
   legend->Draw();
   
-  gPad->Print(dir1 + Form("resolution%s.png",pid.Data()));
+  gPad->Print(dir1 + Form(refit ? "resolution_refit%s.png" : "resolution%s.png",pid.Data()));
 }
 

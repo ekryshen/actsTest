@@ -7,7 +7,7 @@
 #include "ActsFatras/EventData/Barcode.hpp"
 #include "analyse_summary.C"
 
-void analyse_tracking_efficiency(TString dir = "acts_pi_16", double etaMean = 1.6, double etaDif = 0.1){
+void analyse_tracking_efficiency(TString dir = "acts_pi_16", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0){
   dir.Append("/");
 
   // setup particles
@@ -34,7 +34,7 @@ void analyse_tracking_efficiency(TString dir = "acts_pi_16", double etaMean = 1.
   tPart->SetBranchAddress("eta",&part_eta);  
   tPart->SetBranchAddress("phi",&part_phi);  
 
-  TFile* fTrack = new TFile(TString(dir + "tracksummary.root"));
+  TFile* fTrack = new TFile(TString(dir + (refit ? "trackrefit.root" : "tracksummary.root")) );
   TTree* tTrack = (TTree*) fTrack->Get("tracksummary");
   SetBranchAddresses(tTrack);
   int nEvents = tTrack->GetEntries();
@@ -144,7 +144,7 @@ void analyse_tracking_efficiency(TString dir = "acts_pi_16", double etaMean = 1.
   new TCanvas;
   hPtResVsPtPr->Draw();
 
-  TFile* f = new TFile(TString(dir + "tracking_efficiency.root"),"update");
+  TFile* f = new TFile(TString(dir + (refit ? "tracking_efficiency_refit.root" : "tracking_efficiency.root") ),"update");
   hMcPtPi->Write(Form("hMcPtPi%.0f",etaMean*10));
   hMcPtPr->Write(Form("hMcPtPr%.0f",etaMean*10));
   hRcPtPi->Write(Form("hEffPtPi%.0f",etaMean*10));

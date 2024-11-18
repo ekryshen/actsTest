@@ -44,6 +44,7 @@ class MyCalibrator {
 class MyRefittingAlgorithm final : public IAlgorithm {
  public:
   struct Config {
+    bool isPr = 0;
     std::string inputTracks;
     std::string outputTracks;
     std::string inputMeasurements;
@@ -88,8 +89,7 @@ class MyRefittingAlgorithm final : public IAlgorithm {
     std::vector<Acts::SourceLink> sourceLinks;
     std::vector<const Acts::Surface*> surfSequence;
     for (const auto& track : m_inputTracks(ctx)) {
-      const Acts::BoundTrackParameters initialParams(track.referenceSurface().getSharedPtr(), track.parameters(), track.covariance(), Acts::ParticleHypothesis::pion());
-      //const Acts::BoundTrackParameters initialParams(track.referenceSurface().getSharedPtr(), track.parameters(), track.covariance(), track.particleHypothesis());
+      const Acts::BoundTrackParameters initialParams(track.referenceSurface().getSharedPtr(), track.parameters(), track.covariance(), m_cfg.isPr ? Acts::ParticleHypothesis::proton() : track.particleHypothesis());
       sourceLinks.clear();
       surfSequence.clear();
       for (auto state : track.trackStatesReversed()) {

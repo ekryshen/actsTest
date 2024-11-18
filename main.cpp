@@ -60,7 +60,7 @@ using Acts::UnitConstants::cm;
 int main(int argc, char *argv[]){
   // default parameters
   TString inputDir = "none";
-  TString outputDir = "notpc";
+  TString outputDir = "test";
   int nEvents = 100000;
   //Acts::PdgParticle pdgCode = Acts::eProton;
   Acts::PdgParticle pdgCode = Acts::ePionPlus;

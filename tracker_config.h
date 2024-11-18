@@ -8,7 +8,7 @@ double radLenSilicon = 9.370;  // cm
 double radLenAluminium = 8.897; // cm
 
 // double thickness{0.00112*radLenSilicon};
-double thickness = 0.01; // cm
+double thickness = 0.02; // cm
 double rMinStation = 35.7; // cm
 double rMaxStation = 130.; // cm
 

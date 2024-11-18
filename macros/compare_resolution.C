@@ -25,25 +25,25 @@ double quadratic_sum(double* x, double* par){
 }
 
 
-void compare_resolution(TString pid = "Pr"){
+void compare_resolution(TString pid = "Pr", bool refit = 1){
   bool isPi = pid.Contains("Pi");
-  TFile* f1 = new TFile(Form("notpc_%s_16/resolution.root",isPi?"pi":"pr"));
-  TFile* f2 = new TFile(Form("notpc_%s_19/resolution.root",isPi?"pi":"pr"));
-  TFile* f3 = new TFile(Form("notpc_%s_22/resolution.root",isPi?"pi":"pr"));
+  TFile* f1 = new TFile(Form("notpc_%s_16/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
+  TFile* f2 = new TFile(Form("notpc_%s_19/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
+  TFile* f3 = new TFile(Form("notpc_%s_22/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
   TGraph* gRes16 = (TGraph*) f1->Get(Form("gRes%s16",pid.Data()));
   TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
   TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s22",pid.Data()));
 
-  TFile* fRoc1 = new TFile(Form("noframe_%s_16/resolution.root",isPi?"pi":"pr"));
-  TFile* fRoc2 = new TFile(Form("noframe_%s_19/resolution.root",isPi?"pi":"pr"));
-  TFile* fRoc3 = new TFile(Form("noframe_%s_22/resolution.root",isPi?"pi":"pr"));
+  TFile* fRoc1 = new TFile(Form("noframe_%s_16/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
+  TFile* fRoc2 = new TFile(Form("noframe_%s_19/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
+  TFile* fRoc3 = new TFile(Form("noframe_%s_22/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
   TGraph* gResRoc16 = (TGraph*) fRoc1->Get(Form("gRes%s16",pid.Data()));
   TGraph* gResRoc19 = (TGraph*) fRoc2->Get(Form("gRes%s19",pid.Data()));
   TGraph* gResRoc22 = (TGraph*) fRoc3->Get(Form("gRes%s22",pid.Data()));
 
-  TFile* fFull1 = new TFile(Form("acts_%s_16/resolution.root",isPi?"pi":"pr"));
-  TFile* fFull2 = new TFile(Form("acts_%s_19/resolution.root",isPi?"pi":"pr"));
-  TFile* fFull3 = new TFile(Form("acts_%s_22/resolution.root",isPi?"pi":"pr"));
+  TFile* fFull1 = new TFile(Form("acts_%s_16/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
+  TFile* fFull2 = new TFile(Form("acts_%s_19/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
+  TFile* fFull3 = new TFile(Form("acts_%s_22/resolution%s.root",isPi?"pi":"pr",refit ? "_refit" : ""));
   TGraph* gResFull16 = (TGraph*) fFull1->Get(Form("gRes%s16",pid.Data()));
   TGraph* gResFull19 = (TGraph*) fFull2->Get(Form("gRes%s19",pid.Data()));
   TGraph* gResFull22 = (TGraph*) fFull3->Get(Form("gRes%s22",pid.Data()));
@@ -56,25 +56,39 @@ void compare_resolution(TString pid = "Pr"){
   hFrame->SetTitle(";p_{T}^{MC} (GeV/c); Resolution");
   hFrame->GetXaxis()->SetTitleOffset(1.2);
 
-  gRes16->SetLineWidth(2); gRes16->SetLineColor(kBlue-10);
-  gRes19->SetLineWidth(2); gRes19->SetLineColor(kMagenta-10);
-  gRes22->SetLineWidth(2); gRes22->SetLineColor(kRed-10);
+  gRes16->SetLineStyle(9);
+  gRes19->SetLineStyle(9);
+  gRes22->SetLineStyle(9);
 
-  gResRoc16->SetLineWidth(2); gResRoc16->SetLineColor(kBlue-9);
-  gResRoc19->SetLineWidth(2); gResRoc19->SetLineColor(kMagenta-9);
-  gResRoc22->SetLineWidth(2); gResRoc22->SetLineColor(kRed-9);
+  // gRes16->SetLineWidth(2); gRes16->SetLineColor(kBlue-10);
+  // gRes19->SetLineWidth(2); gRes19->SetLineColor(kMagenta-10);
+  // gRes22->SetLineWidth(2); gRes22->SetLineColor(kRed-10);
+
+  // gResRoc16->SetLineWidth(2); gResRoc16->SetLineColor(kBlue-9);
+  // gResRoc19->SetLineWidth(2); gResRoc19->SetLineColor(kMagenta-9);
+  // gResRoc22->SetLineWidth(2); gResRoc22->SetLineColor(kRed-9);
+
+  gRes16->SetLineWidth(2); gRes16->SetLineColor(kBlue-9);
+  gRes19->SetLineWidth(2); gRes19->SetLineColor(kMagenta-9);
+  gRes22->SetLineWidth(2); gRes22->SetLineColor(kRed-9);
+
+  gResRoc16->SetLineWidth(2); gResRoc16->SetLineColor(kBlue);
+  gResRoc19->SetLineWidth(2); gResRoc19->SetLineColor(kMagenta);
+  gResRoc22->SetLineWidth(2); gResRoc22->SetLineColor(kRed);
+
 
   gResFull16->SetLineWidth(2); gResFull16->SetLineColor(kBlue);
   gResFull19->SetLineWidth(2); gResFull19->SetLineColor(kMagenta);
   gResFull22->SetLineWidth(2); gResFull22->SetLineColor(kRed);
+
 
   gRes16->Draw("same");
   gRes19->Draw("same");
   gRes22->Draw("same");
 
   gResRoc16->RemovePoint(0);
-  // gResRoc19->RemovePoint(0);
-  // gResRoc22->RemovePoint(0);
+  gResRoc19->RemovePoint(0);
+  gResRoc22->RemovePoint(0);
 
   gResRoc16->Draw("same");
   gResRoc19->Draw("same");

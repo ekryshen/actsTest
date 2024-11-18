@@ -3,7 +3,7 @@
 #include "TH1D.h"
 #include "style.h"
 
-void analyse_resolution(TString dir = "notpc_pi_16_200_5", TString pid = "Pi", double etaMean = 1.6){
+void analyse_resolution(TString dir = "notpc_pi_16_200_5", TString pid = "Pi", double etaMean = 1.6, bool refit = 0){
   dir.Append("/");
 //  gStyle->SetStatFontSize(0.08);
   gStyle->SetStatH(0.15);
@@ -11,7 +11,7 @@ void analyse_resolution(TString dir = "notpc_pi_16_200_5", TString pid = "Pi", d
   gStyle->SetStatFormat("6.3g");
   gStyle->SetOptFit(101);
 
-  TFile* f = new TFile(dir + "tracking_efficiency.root");
+  TFile* f = new TFile(dir + (refit ? "tracking_efficiency_refit.root" : "tracking_efficiency.root"));
   TH2D* hPtResVsPtMC = (TH2D*) f->Get(Form("hPtResVsPt%s%.0f",pid.Data(), etaMean*10));
 
   int nbins = hPtResVsPtMC->GetNbinsX();
@@ -30,7 +30,10 @@ void analyse_resolution(TString dir = "notpc_pi_16_200_5", TString pid = "Pi", d
     double minPtMC = 1000*hPtResVsPtMC->GetXaxis()->GetBinLowEdge(ibin);
     double maxPtMC = 1000*hPtResVsPtMC->GetXaxis()->GetBinUpEdge(ibin);
     TH1D* hProj = hPtResVsPtMC->ProjectionY(Form("hRes_%.0f_%.0f",minPtMC,maxPtMC),ibin,ibin);
-    hProj->Fit(fGaus,"LQ0","",-0.2,0.2);
+    double mean = hProj->GetMean();
+    double sigma = hProj->GetRMS();
+
+    hProj->Fit(fGaus,"LQ0","",mean-2*sigma,mean+2*sigma);
     vPt[ibin-imin] = hPtResVsPtMC->GetXaxis()->GetBinCenter(ibin);
     vRes[ibin-imin] = fGaus->GetParameter(2);
     //vRes[ibin-imin] = hProj->GetRMS();
@@ -47,13 +50,13 @@ void analyse_resolution(TString dir = "notpc_pi_16_200_5", TString pid = "Pi", d
     hProj->GetListOfFunctions()->At(0)->Draw("same");
     
   }
-  c1->Print(dir + "res.png");
+  c1->Print(dir + Form("res%s%.0f_%d.png",pid.Data(), etaMean*10,int(refit)));
 
   for (int i=0;i<nPtBins;i++){
     printf("%d %f %f\n",i,vPt[i],vRes[i]);
   }
   TGraph* g = new TGraph(nPtBins,vPt,vRes);
-  TFile* fg = new TFile(dir + "resolution.root","update");
+  TFile* fg = new TFile(dir + (refit ? "resolution_refit.root" : "resolution.root"),"update");
   g->Write(Form("gRes%s%.0f",pid.Data(), etaMean*10));
   fg->Close();
 }
