@@ -50,7 +50,7 @@
 
 #include "tracker_config.h"
 #include "tracker.h"
-
+#include "TString.h"
 #include <filesystem>
 
 #include "MyRefittingAlgorithm.hpp"
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]){
   digiCfg.inputSimHits = simhits;
   digiCfg.randomNumbers = rnd;
   digiCfg.outputMeasurements = measurements;
-  digiCfg.trackingGeometry = trackingGeometry;
+  digiCfg.surfaceByIdentifier = trackingGeometry->geoIdSurfaceMap();
 //  digiCfg.digitizationConfigs = ActsExamples::readDigiConfigFromJson("digi-smearing-config.json");
   
   Acts::GeometryIdentifier id;
@@ -184,7 +184,7 @@ int main(int argc, char *argv[]){
 
   // Create space points
   ActsExamples::SpacePointMaker::Config spCfg;
-  spCfg.inputSourceLinks = digiCfg.outputSourceLinks;
+  // spCfg.inputSourceLinks = digiCfg.outputSourceLinks;
   spCfg.inputMeasurements = measurements;
   spCfg.trackingGeometry = trackingGeometry;
   spCfg.outputSpacePoints = spacepoints;
@@ -242,7 +242,7 @@ int main(int argc, char *argv[]){
   // Track finding
   ActsExamples::TrackFindingAlgorithm::Config trackFindingCfg;
   trackFindingCfg.inputMeasurements = measurements;
-  trackFindingCfg.inputSourceLinks = digiCfg.outputSourceLinks;
+  // trackFindingCfg.inputSourceLinks = digiCfg.outputSourceLinks;
   trackFindingCfg.inputInitialTrackParameters = paramsEstimationCfg.outputTrackParameters;
   trackFindingCfg.outputTracks = tracks;
   trackFindingCfg.trackingGeometry = trackingGeometry;
@@ -280,7 +280,7 @@ int main(int argc, char *argv[]){
   measWriterCfg.inputSimHits = simhits;
   measWriterCfg.inputMeasurementSimHitsMap = digiCfg.outputMeasurementSimHitsMap;
   measWriterCfg.filePath = TString(outputDir+"measurements.root").Data();
-  measWriterCfg.trackingGeometry = trackingGeometry;
+  measWriterCfg.surfaceByIdentifier = trackingGeometry->geoIdSurfaceMap();
   measWriterCfg.boundIndices = Acts::GeometryHierarchyMap<std::vector<Acts::BoundIndices>>(digiCfg.getBoundIndices());
 
   // SpacepointWriter config

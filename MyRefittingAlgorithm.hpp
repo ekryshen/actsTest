@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Acts/Utilities/Logger.hpp"
+#include "Acts/EventData/MeasurementHelpers.hpp"
 #include "ActsExamples/EventData/Track.hpp"
 #include "ActsExamples/Framework/DataHandle.hpp"
 #include "ActsExamples/Framework/IAlgorithm.hpp"
@@ -35,9 +36,19 @@ class MyCalibrator {
                   const Acts::CalibrationContext& cctx,
                   const Acts::SourceLink& sourceLink,
                   Acts::VectorMultiTrajectory::TrackStateProxy trackState) const {
-                    const IndexSourceLink& idxSourceLink = sourceLink.get<IndexSourceLink>();
-                    std::visit([&trackState](const auto& meas) { trackState.allocateCalibrated(meas.size()); trackState.setCalibrated(meas);}, (measurements)[idxSourceLink.index()]);
-                  }
+    const auto &idxSourceLink = sourceLink.get<IndexSourceLink>();
+    const ConstVariableBoundMeasurementProxy measurement = measurements.getMeasurement(idxSourceLink.index());
+    Acts::visit_measurement(measurement.size(), [&](auto N) -> void {
+        constexpr std::size_t kMeasurementSize = decltype(N)::value;
+        const auto fixedMeasurement = static_cast<ConstFixedBoundMeasurementProxy<kMeasurementSize>>(measurement);
+        Acts::ActsVector<kMeasurementSize> calibratedParameters = fixedMeasurement.parameters();
+        Acts::ActsSquareMatrix<kMeasurementSize> calibratedCovariance = fixedMeasurement.covariance();
+        trackState.allocateCalibrated(kMeasurementSize);
+        trackState.calibrated<kMeasurementSize>() = calibratedParameters;
+        trackState.calibratedCovariance<kMeasurementSize>() = calibratedCovariance;
+        trackState.setSubspaceIndices(fixedMeasurement.subspaceIndices());
+    });
+  }
   ActsExamples::MeasurementContainer measurements;
 };
 
@@ -80,8 +91,7 @@ class MyRefittingAlgorithm final : public IAlgorithm {
     Acts::Experimental::Gx2FitterExtensions<Acts::VectorMultiTrajectory> gx2extensions;
     gx2extensions.surfaceAccessor.connect<&IndexSourceLink::SurfaceAccessor::operator()>(&slSurfaceAccessor);
     gx2extensions.calibrator.connect<&MyCalibrator::calibrate>(&calibrator);
-    Acts::Experimental::Gx2FitterOptions<Acts::VectorMultiTrajectory> gx2fOptions(ctx.geoContext, ctx.magFieldContext, ctx.calibContext, gx2extensions, Acts::PropagatorPlainOptions());
-    
+    Acts::Experimental::Gx2FitterOptions<Acts::VectorMultiTrajectory> gx2fOptions(ctx.geoContext, ctx.magFieldContext, ctx.calibContext, gx2extensions, Acts::PropagatorPlainOptions(ctx.geoContext, ctx.magFieldContext));
     auto trackContainer = std::make_shared<Acts::VectorTrackContainer>();
     auto trackStateContainer = std::make_shared<Acts::VectorMultiTrajectory>();
     TrackContainer tracks(trackContainer, trackStateContainer);

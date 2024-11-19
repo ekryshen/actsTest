@@ -1,22 +1,23 @@
-# ./build/actsTest mpd mpd 6000
+../build/actsTest none acts_pi_16_fixedPt 6000 pi 1.6
+
 if false; then
 ../build/actsTest none acts_pi_16_fixedPt 100000 pi 1.6
 ../build/actsTest none acts_pr_16_fixedPt 100000 pr 1.6
 fi
 
-if true; then
+if false; then
 ../build/actsTest none noframe_pi_16 1000000 pi 1.6
 ../build/actsTest none noframe_pi_19 1000000 pi 1.9
 ../build/actsTest none noframe_pi_22 1000000 pi 2.2
 fi
 
-if true; then
+if false; then
 ../build/actsTest none notpc_pi_16 1000000 pi 1.6
 ../build/actsTest none notpc_pi_19 1000000 pi 1.9
 ../build/actsTest none notpc_pi_22 1000000 pi 2.2
 fi
 
-if true; then
+if false; then
 ../build/actsTest none acts_pi_16 1000000 pi 1.6
 ../build/actsTest none acts_pi_19 1000000 pi 1.9
 ../build/actsTest none acts_pi_22 1000000 pi 2.2
