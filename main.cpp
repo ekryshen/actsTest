@@ -1,11 +1,8 @@
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/MagneticField/ConstantBField.hpp"
-#include "Acts/Definitions/Algebra.hpp"
-#include "Acts/Geometry/SurfaceArrayCreator.hpp"
 #include "Acts/Geometry/TrackingGeometry.hpp"
-#include "Acts/Seeding/SeedFinderConfig.hpp"
-#include "ActsExamples/Io/Json/JsonDigitizationConfig.hpp"
 #include "ActsExamples/Generators/EventGenerator.hpp"
 #include "ActsExamples/Generators/VertexGenerators.hpp"
 #include "ActsExamples/Generators/MultiplicityGenerators.hpp"
@@ -14,39 +11,24 @@
 #include "ActsExamples/Framework/Sequencer.hpp"
 #include "ActsExamples/Fatras/FatrasSimulation.hpp"
 #include "ActsExamples/TelescopeDetector/TelescopeDetector.hpp"
-// #include "ActsExamples/Geometry/MaterialWiper.hpp"
 #include "ActsExamples/Digitization/DigitizationAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/SeedingAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/SpacePointMaker.hpp"
-#include "ActsExamples/Io/Root/RootSimHitReader.hpp"
-#include "ActsExamples/Io/Root/RootSimHitWriter.hpp"
-#include "ActsExamples/Io/Root/RootSpacepointWriter.hpp"
-#include "ActsExamples/Io/Root/RootSeedWriter.hpp"
-#include "ActsExamples/Io/Root/RootMeasurementWriter.hpp"
 #include "ActsExamples/Io/Csv/CsvSeedWriter.hpp"
 #include "ActsExamples/TrackFinding/TrackParamsEstimationAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/TrackFindingAlgorithm.hpp"
+#include "ActsExamples/Io/Json/JsonDigitizationConfig.hpp"
+#include "ActsExamples/Io/Root/RootParticleReader.hpp"
+#include "ActsExamples/Io/Root/RootParticleWriter.hpp"
+#include "ActsExamples/Io/Root/RootSimHitReader.hpp"
+#include "ActsExamples/Io/Root/RootSimHitWriter.hpp"
+#include "ActsExamples/Io/Root/RootMeasurementWriter.hpp"
+#include "ActsExamples/Io/Root/RootSpacepointWriter.hpp"
+#include "ActsExamples/Io/Root/RootSeedWriter.hpp"
 #include "ActsExamples/Io/Root/RootTrackStatesWriter.hpp"
 #include "ActsExamples/Io/Root/RootTrackSummaryWriter.hpp"
-#include "ActsExamples/Io/Root/RootParticleWriter.hpp"
-#include "ActsExamples/Io/Root/RootParticleReader.hpp"
-#include "ActsExamples/Io/Csv/CsvMeasurementWriter.hpp"
 #include "ActsExamples/TruthTracking/TrackTruthMatcher.hpp"
-// Temporary
 #include "ActsExamples/TruthTracking/TruthSeedingAlgorithm.hpp"
-
-// Needed for detector construction
-#include "Acts/Material/HomogeneousSurfaceMaterial.hpp"
-#include "Acts/Surfaces/DiscSurface.hpp"
-#include "Acts/Surfaces/SurfaceArray.hpp"
-#include "Acts/Surfaces/RadialBounds.hpp"
-#include "Acts/Geometry/DiscLayer.hpp"
-#include "Acts/Geometry/PlaneLayer.hpp"
-#include "Acts/Geometry/LayerArrayCreator.hpp"
-#include "Acts/Geometry/CylinderVolumeBounds.hpp"
-#include "Acts/Geometry/CuboidVolumeBounds.hpp"
-#include "Acts/Geometry/NavigationLayer.hpp"
-//  native units: mm, GeV, c=1, e=1
 
 #include "tracker_config.h"
 #include "tracker.h"
@@ -61,7 +43,7 @@ int main(int argc, char *argv[]){
   // default parameters
   TString inputDir = "none";
   TString outputDir = "test";
-  int nEvents = 100000;
+  int nEvents = 1000;
   //Acts::PdgParticle pdgCode = Acts::eProton;
   Acts::PdgParticle pdgCode = Acts::ePionPlus;
   double etaMin = 2.2;
@@ -157,8 +139,7 @@ int main(int argc, char *argv[]){
   // Fatras config
   ActsExamples::FatrasSimulation::Config fatrasCfg;
   fatrasCfg.inputParticles = particles;
-  fatrasCfg.outputParticlesInitial = "initial";
-  fatrasCfg.outputParticlesFinal = "final";
+  fatrasCfg.outputParticles = "final";
   fatrasCfg.outputSimHits = simhits;
   fatrasCfg.trackingGeometry = trackingGeometry;
   fatrasCfg.pMin = 0.1_GeV;
@@ -167,19 +148,16 @@ int main(int argc, char *argv[]){
   //fatrasCfg.generateHitsOnMaterial = true;
 
   // Digitization config
-  ActsExamples::DigitizationConfig digiCfg(0, 0.001, 0);  //doMerge (bool), mergeSigma (mm), mergeCommonCorner (bool)
+  ActsExamples::DigitizationAlgorithm::Config digiCfg;
   digiCfg.inputSimHits = simhits;
   digiCfg.randomNumbers = rnd;
   digiCfg.outputMeasurements = measurements;
   digiCfg.surfaceByIdentifier = trackingGeometry->geoIdSurfaceMap();
-//  digiCfg.digitizationConfigs = ActsExamples::readDigiConfigFromJson("digi-smearing-config.json");
   
-  Acts::GeometryIdentifier id;
-  id.setVolume(1);
   ActsExamples::DigiComponentsConfig digiConfig;
   digiConfig.smearingDigiConfig.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc0, ActsExamples::Digitization::Gauss(0.08)});
   digiConfig.smearingDigiConfig.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc1, ActsExamples::Digitization::Gauss(0.08)});
-  std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements = { {id, digiConfig} };
+  std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements = { {Acts::GeometryIdentifier{}, digiConfig} };
   digiCfg.digitizationConfigs = Acts::GeometryHierarchyMap<ActsExamples::DigiComponentsConfig>(elements);
 
   // Create space points
@@ -281,7 +259,6 @@ int main(int argc, char *argv[]){
   measWriterCfg.inputMeasurementSimHitsMap = digiCfg.outputMeasurementSimHitsMap;
   measWriterCfg.filePath = TString(outputDir+"measurements.root").Data();
   measWriterCfg.surfaceByIdentifier = trackingGeometry->geoIdSurfaceMap();
-  measWriterCfg.boundIndices = Acts::GeometryHierarchyMap<std::vector<Acts::BoundIndices>>(digiCfg.getBoundIndices());
 
   // SpacepointWriter config
   ActsExamples::RootSpacepointWriter::Config spWriterCfg;

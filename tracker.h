@@ -1,15 +1,31 @@
 #ifndef tracker
 #define tracker
 #include "tracker_config.h"
+
 #include "Acts/Definitions/Units.hpp"
-#include "Acts/Geometry/CuboidVolumeBounds.hpp"
-#include "Acts/Geometry/TrackingVolume.hpp"
+#include "Acts/Utilities/BinnedArrayXD.hpp"
+#include "Acts/Material/HomogeneousSurfaceMaterial.hpp"
+#include "Acts/Material/HomogeneousVolumeMaterial.hpp"
+#include "Acts/Surfaces/Surface.hpp"
+#include "Acts/Surfaces/DiscSurface.hpp"
+#include "Acts/Surfaces/SurfaceArray.hpp"
+#include "Acts/Surfaces/RadialBounds.hpp"
 #include "Acts/Surfaces/PlanarBounds.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
-#include "Acts/Material/HomogeneousVolumeMaterial.hpp"
+#include "Acts/Geometry/TrackingVolume.hpp"
+#include "Acts/Geometry/DiscLayer.hpp"
+#include "Acts/Geometry/PlaneLayer.hpp"
+#include "Acts/Geometry/NavigationLayer.hpp"
+#include "Acts/Geometry/CylinderVolumeBounds.hpp"
+#include "Acts/Geometry/CuboidVolumeBounds.hpp"
+#include "Acts/Geometry/SurfaceArrayCreator.hpp"
+#include "Acts/Geometry/LayerArrayCreator.hpp"
+#include "Acts/Geometry/TrackingVolumeArrayCreator.hpp"
 #include "Acts/Plugins/Geant4/Geant4Converters.hpp"
+
 #include "Geant4/G4Material.hh"
 #include "Geant4/G4NistManager.hh"
+
 
 using Acts::UnitConstants::cm;
 
