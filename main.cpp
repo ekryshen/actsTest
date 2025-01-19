@@ -94,13 +94,14 @@ int main(int argc, char *argv[]){
   Acts::Logging::Level logLevelMeasWriter = Acts::Logging::INFO;
   Acts::Logging::Level logLevelMyRefit = Acts::Logging::ERROR;
   // collection names
-  std::string particles = "particles";
-  std::string vertices = "vertices";
-  std::string tracks = "tracks";
-  std::string simhits = "simhits";
-  std::string spacepoints = "spacepoints";
-  std::string measurements = "measurements";
-  std::string seeds = "seeds";
+  auto particles = "particles";
+  auto vertices = "vertices";
+  auto tracks = "tracks";
+  auto simhits = "simhits";
+  auto measurements = "measurements";
+  auto spacepoints = "spacepoints";
+  auto seeds = "seeds";
+  auto estimatedparameters = "estimatedparameters";
 
   // Random number generator config
   auto rnd = std::make_shared<ActsExamples::RandomNumbers>(ActsExamples::RandomNumbers::Config({42}));
@@ -213,7 +214,7 @@ int main(int argc, char *argv[]){
   // Parameter Estimation from seeds
   ActsExamples::TrackParamsEstimationAlgorithm::Config paramsEstimationCfg;
   paramsEstimationCfg.inputSeeds = seeds;
-  paramsEstimationCfg.outputTrackParameters = "estimatedparameters";
+  paramsEstimationCfg.outputTrackParameters = estimatedparameters;
   paramsEstimationCfg.trackingGeometry = trackingGeometry;
   paramsEstimationCfg.magneticField = fatrasCfg.magneticField;
 
@@ -240,7 +241,6 @@ int main(int argc, char *argv[]){
   // Particle writer config
   ActsExamples::RootParticleWriter::Config particleWriterCfg;
   particleWriterCfg.inputParticles = particles;
-  particleWriterCfg.treeName = "particles";
   particleWriterCfg.filePath = TString(outputDir+"particles.root").Data();
 
   // SimhitReader config
@@ -257,8 +257,8 @@ int main(int argc, char *argv[]){
   measWriterCfg.inputMeasurements = measurements;
   measWriterCfg.inputSimHits = simhits;
   measWriterCfg.inputMeasurementSimHitsMap = digiCfg.outputMeasurementSimHitsMap;
-  measWriterCfg.filePath = TString(outputDir+"measurements.root").Data();
   measWriterCfg.surfaceByIdentifier = trackingGeometry->geoIdSurfaceMap();
+  measWriterCfg.filePath = TString(outputDir+"measurements.root").Data();
 
   // SpacepointWriter config
   ActsExamples::RootSpacepointWriter::Config spWriterCfg;
@@ -276,7 +276,6 @@ int main(int argc, char *argv[]){
   trackStatesWriterCfg.inputSimHits = simhits;
   trackStatesWriterCfg.inputTrackParticleMatching = trackTruthMatcherCfg.outputTrackParticleMatching;
   trackStatesWriterCfg.inputMeasurementSimHitsMap = digiCfg.outputMeasurementSimHitsMap;
-  trackStatesWriterCfg.treeName = "trackstates";
   trackStatesWriterCfg.filePath = TString(outputDir+"trackstates.root").Data();
 
   ActsExamples::RootTrackSummaryWriter::Config trackSummaryWriterCfg;
