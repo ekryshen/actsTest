@@ -136,8 +136,9 @@ Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 1, bool addFlange =
   // const auto rBounds = std::make_shared<const Acts::RadialBounds>(rMinStation, rMaxStation);  // <- for disk-like layers
   const auto pBounds = std::make_shared<const Acts::RectangleBounds>(rMaxStation*cm, rMaxStation*cm); // <- for square-like layers
   for (unsigned int i = 0; i < positions.size(); i++) {
-    Acts::Translation3 trans(0, 0, positions[i]*cm);
-    Acts::Transform3 trafo(trans);
+    Acts::Transform3 trafo = Acts::Transform3::Identity();
+    trafo.translate(Acts::Vector3(0, 0, positions[i]*cm));
+    if (i%2==1) trafo.rotate(Eigen::AngleAxisd(std::numbers::pi/2, Acts::Vector3(0, 0, 1))); // for strip-like simulations
     // create surface
     // auto surface = Acts::Surface::makeShared<Acts::DiscSurface>(trafo, rMinStation, rMaxStation); // <- for disk-like layers
     auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(trafo, pBounds); // <- for square-like layers

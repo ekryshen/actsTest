@@ -36,7 +36,7 @@ link_directories(
         )
 
 # main exec
-add_executable(${PROJECT_NAME} main.cpp tracker.h tracker_config.h)
+add_executable(${PROJECT_NAME} main.cpp tracker.h tracker_config.h MySpacePointMaker.cpp)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         ActsCore

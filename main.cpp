@@ -35,6 +35,7 @@
 #include "TString.h"
 #include <filesystem>
 
+#include "MySpacePointMaker.hpp"
 #include "MyRefittingAlgorithm.hpp"
 
 using Acts::UnitConstants::cm;
@@ -84,6 +85,7 @@ int main(int argc, char *argv[]){
   std::filesystem::create_directory(outputDir.Data());
 
   // Logger
+  Acts::Logging::Level logLevelV = Acts::Logging::VERBOSE;
   Acts::Logging::Level logLevel = Acts::Logging::INFO;
   Acts::Logging::Level logLevelFatras = Acts::Logging::INFO;
   Acts::Logging::Level logLevelDigi = Acts::Logging::INFO;
@@ -157,17 +159,24 @@ int main(int argc, char *argv[]){
   
   ActsExamples::DigiComponentsConfig digiConfig;
   digiConfig.smearingDigiConfig.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc0, ActsExamples::Digitization::Gauss(0.08)});
-  digiConfig.smearingDigiConfig.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc1, ActsExamples::Digitization::Gauss(0.08)});
+//  digiConfig.smearingDigiConfig.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc1, ActsExamples::Digitization::Gauss(0.08)});
   std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements = { {Acts::GeometryIdentifier{}, digiConfig} };
   digiCfg.digitizationConfigs = Acts::GeometryHierarchyMap<ActsExamples::DigiComponentsConfig>(elements);
 
   // Create space points
-  ActsExamples::SpacePointMaker::Config spCfg;
-  // spCfg.inputSourceLinks = digiCfg.outputSourceLinks;
+  // ActsExamples::SpacePointMaker::Config spCfg;
+  // spCfg.inputMeasurements = measurements;
+  // spCfg.trackingGeometry = trackingGeometry;
+  // spCfg.outputSpacePoints = spacepoints;
+  // spCfg.geometrySelection = {Acts::GeometryIdentifier{}};
+
+  // Create space points
+  ActsExamples::MySpacePointMaker::Config spCfg;
   spCfg.inputMeasurements = measurements;
   spCfg.trackingGeometry = trackingGeometry;
   spCfg.outputSpacePoints = spacepoints;
   spCfg.geometrySelection = {Acts::GeometryIdentifier{}};
+
 
   // ActsExamples::TruthSeedingAlgorithm::Config truthSeedingCfg;
   // truthSeedingCfg.inputParticles = evgenCfg.outputParticles;
@@ -180,19 +189,20 @@ int main(int argc, char *argv[]){
   // truthSeedingCfg.deltaRMax = 100._mm;
 
   // Seeding
+  int iB = 0, iM = 2, iF = 4;
   ActsExamples::SeedingAlgorithm::Config seedingCfg;
   seedingCfg.inputSpacePoints = {spacepoints};
   seedingCfg.outputSeeds = seeds;
   seedingCfg.seedFinderOptions.bFieldInZ = bz*Acts::UnitConstants::T;
   seedingCfg.seedFinderConfig.minPt              = 0.1_GeV;
-  seedingCfg.seedFinderConfig.deltaZMax          = (positions[1] - positions[0])*cm + 1_mm;
-  seedingCfg.seedFinderConfig.deltaRMax          = (1-positions[1]/positions[2])*rMaxStation*cm + 1_mm;
+  seedingCfg.seedFinderConfig.deltaZMax          = (positions[iM] - positions[iB])*cm + 1_mm;
+  seedingCfg.seedFinderConfig.deltaRMax          = (1-positions[iM]/positions[iF])*rMaxStation*cm + 1_mm;
+  seedingCfg.seedFinderConfig.zMin               = positions[iB]*cm - 1_mm;
+  seedingCfg.seedFinderConfig.zMax               = positions[iF]*cm + 1_mm;
   seedingCfg.seedFinderConfig.rMin               = rMinStation*cm;
   seedingCfg.seedFinderConfig.rMax               = rMaxStation*cm;
   seedingCfg.seedFinderConfig.rMinMiddle         = rMinStation*cm;
   seedingCfg.seedFinderConfig.rMaxMiddle         = rMaxStation*cm;
-  seedingCfg.seedFinderConfig.zMin               = positions[0]*cm - 1_mm;
-  seedingCfg.seedFinderConfig.zMax               = positions[2]*cm + 1_mm;
   seedingCfg.seedFinderConfig.cotThetaMax        = 7.0;  
   seedingCfg.seedFinderConfig.impactMax          = rMinStation*cm - 10_mm;
   seedingCfg.seedFinderConfig.collisionRegionMin = -vzMax*cm; // important at low momenta due to mult scattering effects
@@ -316,12 +326,13 @@ int main(int argc, char *argv[]){
     sequencer.addReader(std::make_shared<ActsExamples::RootSimHitReader>(simhitReaderCfg, logLevel));
   }
   sequencer.addAlgorithm(std::make_shared<ActsExamples::DigitizationAlgorithm>(digiCfg, logLevelDigi));
-  sequencer.addAlgorithm(std::make_shared<ActsExamples::SpacePointMaker>(spCfg, logLevel));
+//  sequencer.addAlgorithm(std::make_shared<ActsExamples::SpacePointMaker>(spCfg, logLevel));
+  sequencer.addAlgorithm(std::make_shared<ActsExamples::MySpacePointMaker>(spCfg, logLevelV));
+
   sequencer.addAlgorithm(std::make_shared<ActsExamples::SeedingAlgorithm>(seedingCfg, logLevelSeed));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackParamsEstimationAlgorithm>(paramsEstimationCfg, logLevel));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackFindingAlgorithm>(trackFindingCfg, logLevelFinder));
-  sequencer.addAlgorithm(std::make_shared<ActsExamples::MyRefittingAlgorithm>(refitCfg, logLevelMyRefit));
-
+  // sequencer.addAlgorithm(std::make_shared<ActsExamples::MyRefittingAlgorithm>(refitCfg, logLevelMyRefit));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackTruthMatcher>(trackTruthMatcherCfg, logLevelMatcher));
 
 
@@ -329,10 +340,11 @@ int main(int argc, char *argv[]){
   sequencer.addWriter(std::make_shared<ActsExamples::RootSimHitWriter>(simhitWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootMeasurementWriter>(measWriterCfg, logLevelMeasWriter));
   sequencer.addWriter(std::make_shared<ActsExamples::RootSpacepointWriter>(spWriterCfg, logLevel));
+
   sequencer.addWriter(std::make_shared<ActsExamples::RootSeedWriter>(seedWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootTrackStatesWriter>(trackStatesWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackSummaryWriterCfg, logLevel));
-  sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackRefitSummaryWriterCfg, logLevel));
+  // sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackRefitSummaryWriterCfg, logLevel));
 
   sequencer.run();
 
