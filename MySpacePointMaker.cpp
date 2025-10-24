@@ -60,28 +60,32 @@ ActsExamples::ProcessCode ActsExamples::MySpacePointMaker::execute(const Algorit
   // fill front and back strip vectors of pairs(source link, pair<stripEnd1, stripEnd2>)
   std::vector<std::pair<Acts::SourceLink, std::pair<Acts::Vector3, Acts::Vector3>>> frontStrips;
   std::vector<std::pair<Acts::SourceLink, std::pair<Acts::Vector3, Acts::Vector3>>> backStrips;
-
+  std::vector<Acts::SourceLink> twoDimMeasurements;
   double rMax = 1300; // FIXME Extract from surface dimensions
   for (auto& isl : measurements.orderedIndices()) {
     const auto geoId = isl.geometryId();
     const auto volumeId = geoId.volume();
     const auto layerId = geoId.layer();
     ACTS_DEBUG("volumeId= " << volumeId << " layerId=" << layerId);
-    Acts::SourceLink slink{isl}; 
-    const auto [par, cov] = accessor(slink);
-    const Acts::Surface* surface = m_slSurfaceAccessor.value()(slink);
-    // TODO: more realistic strip dimensions including inner radii and half-station splitting
-    auto gpos1 = surface->localToGlobal(ctx.geoContext, Acts::Vector2(par[0],-rMax), Acts::Vector3());
-    auto gpos2 = surface->localToGlobal(ctx.geoContext, Acts::Vector2(par[0], rMax), Acts::Vector3());
-    if (layerId%4==2) {
-      frontStrips.emplace_back(std::make_pair(slink, std::make_pair(gpos1, gpos2)));
-    } else if (layerId%4==0) {
-      backStrips.emplace_back(std::make_pair(slink, std::make_pair(gpos1, gpos2)));
+    Acts::SourceLink slink{isl};
+    if (layerId>20) {
+      twoDimMeasurements.emplace_back(slink);
+    } else {
+      const auto [par, cov] = accessor(slink);
+      const Acts::Surface* surface = m_slSurfaceAccessor.value()(slink);
+      // TODO: more realistic strip dimensions including inner radii and half-station splitting
+      auto gpos1 = surface->localToGlobal(ctx.geoContext, Acts::Vector2(par[0],-rMax), Acts::Vector3());
+      auto gpos2 = surface->localToGlobal(ctx.geoContext, Acts::Vector2(par[0], rMax), Acts::Vector3());
+      if (layerId%4==2) {
+        frontStrips.emplace_back(std::make_pair(slink, std::make_pair(gpos1, gpos2)));
+      } else if (layerId%4==0) {
+        backStrips.emplace_back(std::make_pair(slink, std::make_pair(gpos1, gpos2)));
+      }
     }
   }
   ACTS_DEBUG("making strip pairs:" << "back: " << frontStrips.size() << " front: " << backStrips.size());
 
-  // make space points
+  // make space points from strips
   SimSpacePointContainer spacePoints;
   for (auto& fstrip : frontStrips) {
     float fz = fstrip.second.second[2];
@@ -90,9 +94,17 @@ ActsExamples::ProcessCode ActsExamples::MySpacePointMaker::execute(const Algorit
       if (fabs(fz - bz) > 20) continue;
       std::vector<Acts::SourceLink> slinks = {fstrip.first, bstrip.first};
       auto strippair = std::make_pair(fstrip.second, bstrip.second);
-      Acts::SpacePointBuilderOptions spOpt{strippair, accessor};
-      m_spacePointBuilder.buildSpacePoint(ctx.geoContext, slinks, spOpt, std::back_inserter(spacePoints));
+      Acts::SpacePointBuilderOptions spOptStrips{strippair, accessor};
+      m_spacePointBuilder.buildSpacePoint(ctx.geoContext, slinks, spOptStrips, std::back_inserter(spacePoints));
     }
+  }
+
+  // make space points from 2D measurements
+  Acts::SpacePointBuilderOptions spOpt;
+  spOpt.paramCovAccessor = accessor;
+
+  for (auto& slink : twoDimMeasurements) {
+    m_spacePointBuilder.buildSpacePoint(ctx.geoContext, {slink}, spOpt, std::back_inserter(spacePoints));
   }
 
   spacePoints.shrink_to_fit();

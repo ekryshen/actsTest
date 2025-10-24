@@ -21,13 +21,16 @@
 #include "Acts/Geometry/SurfaceArrayCreator.hpp"
 #include "Acts/Geometry/LayerArrayCreator.hpp"
 #include "Acts/Geometry/TrackingVolumeArrayCreator.hpp"
-#include "Acts/Plugins/Geant4/Geant4Converters.hpp"
+#include "Acts/Utilities/BinnedArrayXD.hpp"
 
-#include "Geant4/G4Material.hh"
-#include "Geant4/G4NistManager.hh"
+//#include "Acts/Plugins/Geant4/Geant4Converters.hpp"
+
+//#include "Geant4/G4Material.hh"
+//#include "Geant4/G4NistManager.hh"
 
 
 using Acts::UnitConstants::cm;
+using namespace Acts::UnitLiterals;
 
 class MyDetectorElement : public Acts::DetectorElementBase {
 public:
@@ -51,15 +54,18 @@ Acts::GeometryContext gctx;
 
 Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 1, bool addFlange = 1){
   // Create materials
-  auto* nist = G4NistManager::Instance();
-  G4Material* siMat = nist->FindOrBuildMaterial("G4_Si");
-  G4Material* alMat = nist->FindOrBuildMaterial("G4_Al");
-  G4Material* worldMat = nist->FindOrBuildMaterial("G4_Galactic");
+  // auto* nist = G4NistManager::Instance();
+  // G4Material* siMat = nist->FindOrBuildMaterial("G4_Si");
+  // G4Material* alMat = nist->FindOrBuildMaterial("G4_Al");
+  // G4Material* worldMat = nist->FindOrBuildMaterial("G4_Galactic");
 
-  Acts::Geant4MaterialConverter converter;
-  Acts::Material silicon = converter.material(*siMat);
-  Acts::Material aluminium = converter.material(*alMat);
-  Acts::Material vacuum = converter.material(*worldMat);
+  // Acts::Geant4MaterialConverter converter;
+  // Acts::Material silicon = converter.material(*siMat);
+  // Acts::Material aluminium = converter.material(*alMat);
+  // Acts::Material vacuum = converter.material(*worldMat);
+  auto aluminium = Acts::Material::fromMassDensity(8.897_cm, 39.70_cm, 26.9815, 13, 2.699_g / 1_cm3);
+  auto silicon = Acts::Material::fromMassDensity(9.370_cm, 46.52_cm, 28.0855, 14, 2.329_g / 1_cm3);
+  auto vacuum = Acts::Material::fromMassDensity(1.176e+4_cm, 7.204e+4_cm, 39.948, 18, 1.662e-10_g / 1_cm3);
 
   Acts::MaterialSlab matProp(silicon, thickness*cm);
   const auto surfaceMaterial = std::make_shared<Acts::HomogeneousSurfaceMaterial>(matProp);
@@ -158,7 +164,7 @@ Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 1, bool addFlange =
   // Create layer array
   Acts::LayerArrayCreator::Config lacConfig;
   Acts::LayerArrayCreator layArrCreator(lacConfig, Acts::getDefaultLogger("LayerArrayCreator", Acts::Logging::INFO));
-  std::unique_ptr<const Acts::LayerArray> layArr(layArrCreator.layerArray(gctx, layVec, 1500_mm, positions.back()*cm + 2._mm, Acts::BinningType::arbitrary, Acts::BinningValue::binZ));
+  std::unique_ptr<const Acts::LayerArray> layArr(layArrCreator.layerArray(gctx, layVec, 1500_mm, positions.back()*cm + 2._mm, Acts::BinningType::arbitrary, Acts::AxisDirection::AxisZ));
 
   // Build mother tracking volume
   Acts::Translation3 transVol(0, 0, 0);

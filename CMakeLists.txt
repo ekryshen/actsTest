@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 project(actsTest)
 
 # soft installation path
-set(SW $ENV{HOME}/mpd/sw/slc9_x86-64)
+set(SW $ENV{HOME}/mpd/sw/ubuntu2404_x86-64)
 set(ACTS_SRC ${SW}/ACTS/latest)
 set(Boost_DIR ${SW}/Boost/latest/lib/cmake/Boost-1.83.0)
 set(Acts_DIR ${SW}/ACTS/latest/lib/cmake/Acts)
@@ -14,6 +14,7 @@ set(LCIO_DIR ${SW}/LCIO/latest/lib/cmake/LCIO)
 set(SIO_DIR ${SW}/LCIO/latest/lib/cmake/SIO)
 set(EDM4HEP_DIR ${SW}/EDM4hep/latest/lib/cmake/EDM4HEP)
 set(podio_DIR ${SW}/podio/latest/lib/cmake/podio)
+set(HEPMC3_DIR ${SW}/HepMC3/latest/share/HepMC3/cmake)
 
 find_package(Geant4 REQUIRED vis_all ui_all)
 include(${Geant4_USE_FILE})
@@ -23,10 +24,14 @@ find_package(Acts REQUIRED)
 
 include_directories(
         $ENV{PWD}
+        ${SW}/Boost/latest/include
+        ${SW}/Eigen3/latest/include/eigen3
+        ${SW}/ACTS/latest/include
         ${SW}/TBB/latest/include
         ${SW}/nlohmann_json/latest/include
         ${SW}/ROOT/latest/include
         ${SW}/GEANT4/latest/include
+        ${HEPMC3_INCLUDE_DIR}
 )
 link_directories(
         ${SW}/TBB/latest/lib
@@ -54,6 +59,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         ActsExamplesTrackFinding
         ActsExamplesTrackFitting
         ActsExamplesTruthTracking
+        ActsExamplesIoHepMC3
         tbb
         Core
         Tree

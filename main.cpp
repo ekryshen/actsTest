@@ -1,23 +1,22 @@
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/Units.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/MagneticField/ConstantBField.hpp"
 #include "Acts/Geometry/TrackingGeometry.hpp"
 #include "ActsExamples/Generators/EventGenerator.hpp"
-#include "ActsExamples/Generators/VertexGenerators.hpp"
-#include "ActsExamples/Generators/MultiplicityGenerators.hpp"
-#include "ActsExamples/Generators/ParametricParticleGenerator.hpp"
+#include "ActsExamples/Utilities/VertexGenerators.hpp"
+#include "ActsExamples/Utilities/MultiplicityGenerators.hpp"
+#include "ActsExamples/Utilities/ParametricParticleGenerator.hpp"
 #include "ActsExamples/Framework/RandomNumbers.hpp"
 #include "ActsExamples/Framework/Sequencer.hpp"
 #include "ActsExamples/Fatras/FatrasSimulation.hpp"
-#include "ActsExamples/TelescopeDetector/TelescopeDetector.hpp"
 #include "ActsExamples/Digitization/DigitizationAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/SeedingAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/SpacePointMaker.hpp"
-#include "ActsExamples/Io/Csv/CsvSeedWriter.hpp"
 #include "ActsExamples/TrackFinding/TrackParamsEstimationAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/TrackFindingAlgorithm.hpp"
-#include "ActsExamples/Io/Json/JsonDigitizationConfig.hpp"
+#include "ActsExamples/Io/HepMC3/HepMC3InputConverter.hpp"
 #include "ActsExamples/Io/Root/RootParticleReader.hpp"
 #include "ActsExamples/Io/Root/RootParticleWriter.hpp"
 #include "ActsExamples/Io/Root/RootSimHitReader.hpp"
@@ -39,6 +38,8 @@
 #include "MyRefittingAlgorithm.hpp"
 
 using Acts::UnitConstants::cm;
+using namespace Acts::UnitConstants;
+using namespace Acts::UnitLiterals;
 
 int main(int argc, char *argv[]){
   // default parameters
@@ -96,6 +97,7 @@ int main(int argc, char *argv[]){
   Acts::Logging::Level logLevelMeasWriter = Acts::Logging::INFO;
   Acts::Logging::Level logLevelMyRefit = Acts::Logging::ERROR;
   // collection names
+  auto events = "hepmc3_event";
   auto particles = "particles";
   auto vertices = "vertices";
   auto tracks = "tracks";
@@ -121,14 +123,20 @@ int main(int argc, char *argv[]){
 
   genCfg.pdg = pdgCode;
   ActsExamples::EventGenerator::Generator gen{
-      std::make_shared<ActsExamples::FixedMultiplicityGenerator>(1),
+      std::make_shared<ActsExamples::FixedMultiplicityGenerator>(4),
       std::make_shared<ActsExamples::FixedPrimaryVertexPositionGenerator>(),
       std::make_shared<ActsExamples::ParametricParticleGenerator>(genCfg)};
   ActsExamples::EventGenerator::Config evgenCfg;
-  evgenCfg.outputParticles = particles;
-  evgenCfg.outputVertices = vertices;
+  // evgenCfg.outputParticles = particles;
+  // evgenCfg.outputVertices = vertices;
+  evgenCfg.outputEvent = events;
   evgenCfg.generators = {gen};
   evgenCfg.randomNumbers = rnd;
+
+  ActsExamples::HepMC3InputConverter::Config hepMC3ConverterCfg;
+  hepMC3ConverterCfg.inputEvent = events;
+  hepMC3ConverterCfg.outputParticles = particles;
+  hepMC3ConverterCfg.outputVertices = vertices;
 
   // Particle reader config
   ActsExamples::RootParticleReader::Config particleReaderCfg;
@@ -150,17 +158,31 @@ int main(int argc, char *argv[]){
   fatrasCfg.randomNumbers = rnd;
   //fatrasCfg.generateHitsOnMaterial = true;
 
+  // Digitization component for strips
+  ActsExamples::DigiComponentsConfig stripConfig;
+  stripConfig.smearingDigiConfig.params.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc0, ActsExamples::Digitization::Gauss(0.08)});
+
+  std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements;
+  for (int l=6; l<=20; l+=2) {
+    Acts::GeometryIdentifier geoId;
+    elements.push_back( {geoId.withVolume(1).withLayer(l), stripConfig} );
+  }
+
+  // Digitization component for two-dimensional measurements
+  ActsExamples::DigiComponentsConfig digiConfig;
+  digiConfig.smearingDigiConfig.params.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc0, ActsExamples::Digitization::Gauss(0.08)});
+  digiConfig.smearingDigiConfig.params.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc1, ActsExamples::Digitization::Gauss(0.08)});
+  Acts::GeometryIdentifier geoId;
+  elements.push_back( {geoId.withVolume(1).withLayer(22), digiConfig} );
+
+  // std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements = { {Acts::GeometryIdentifier{}, digiConfig} };
+
   // Digitization config
   ActsExamples::DigitizationAlgorithm::Config digiCfg;
   digiCfg.inputSimHits = simhits;
   digiCfg.randomNumbers = rnd;
   digiCfg.outputMeasurements = measurements;
   digiCfg.surfaceByIdentifier = trackingGeometry->geoIdSurfaceMap();
-  
-  ActsExamples::DigiComponentsConfig digiConfig;
-  digiConfig.smearingDigiConfig.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc0, ActsExamples::Digitization::Gauss(0.08)});
-//  digiConfig.smearingDigiConfig.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc1, ActsExamples::Digitization::Gauss(0.08)});
-  std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements = { {Acts::GeometryIdentifier{}, digiConfig} };
   digiCfg.digitizationConfigs = Acts::GeometryHierarchyMap<ActsExamples::DigiComponentsConfig>(elements);
 
   // Create space points
@@ -189,7 +211,8 @@ int main(int argc, char *argv[]){
   // truthSeedingCfg.deltaRMax = 100._mm;
 
   // Seeding
-  int iB = 0, iM = 2, iF = 4;
+  int iB = 4, iM = 6, iF = 8;
+  //int iB = 0, iM = 2, iF = 4;
   ActsExamples::SeedingAlgorithm::Config seedingCfg;
   seedingCfg.inputSpacePoints = {spacepoints};
   seedingCfg.outputSeeds = seeds;
@@ -230,8 +253,8 @@ int main(int argc, char *argv[]){
 
   // Track finding
   ActsExamples::TrackFindingAlgorithm::Config trackFindingCfg;
+  //trackFindingCfg.reverseSearch = true;
   trackFindingCfg.inputMeasurements = measurements;
-  // trackFindingCfg.inputSourceLinks = digiCfg.outputSourceLinks;
   trackFindingCfg.inputInitialTrackParameters = paramsEstimationCfg.outputTrackParameters;
   trackFindingCfg.outputTracks = tracks;
   trackFindingCfg.trackingGeometry = trackingGeometry;
@@ -320,6 +343,7 @@ int main(int argc, char *argv[]){
   
   if (inputDir.Contains("none")){ // particle gun + fartras simulation
     sequencer.addReader(std::make_shared<ActsExamples::EventGenerator>(evgenCfg, logLevel));
+    sequencer.addAlgorithm(std::make_shared<ActsExamples::HepMC3InputConverter>(hepMC3ConverterCfg, logLevel));
     sequencer.addElement(std::make_shared<ActsExamples::FatrasSimulation>(fatrasCfg, logLevelFatras));
   } else { // read particles and hits from input file
     sequencer.addReader(std::make_shared<ActsExamples::RootParticleReader>(particleReaderCfg, logLevel));

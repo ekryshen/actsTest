@@ -4,7 +4,7 @@
 double bz = 0.5;    // T
 
 //std::vector<double> positions{{210, 232.5, 255, 277.5, 300}}; // z-positions of sensitive layers in cm
-std::vector<double> positions{{210, 211, 232.5, 233.5, 255, 256, 277.5, 278.5, 299, 300}}; // double layers for strip-like simulations
+std::vector<double> positions{{210, 211, 232.5, 233.5, 255, 256, 277.5, 278.5, 300}}; // double layers for strip-like simulations
 double radLenSilicon = 9.370;  // cm
 double radLenAluminium = 8.897; // cm
 
