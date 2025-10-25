@@ -7,14 +7,14 @@
 #include "ActsFatras/EventData/Barcode.hpp"
 #include "analyse_summary.C"
 
-void analyse_tracking_efficiency(TString dir = "acts_pi_16", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0){
+void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0){
   dir.Append("/");
 
   // setup particles
   TFile* fPart = new TFile(TString(dir + "particles.root"));
   TTree* tPart = (TTree*) fPart->Get("particles");
   UInt_t part_event_id;
-  auto part_id  = new std::vector<unsigned long>; 
+  auto part_id  = new std::vector<uint32_t>; 
   auto part_pdg = new vector<int>;
   auto part_vz  = new std::vector<float>;
   auto part_px  = new std::vector<float>;
@@ -24,7 +24,7 @@ void analyse_tracking_efficiency(TString dir = "acts_pi_16", double etaMean = 1.
   auto part_eta = new std::vector<float>;
   auto part_phi = new std::vector<float>;
   tPart->SetBranchAddress("event_id",&part_event_id);
-  tPart->SetBranchAddress("particle_id",&part_id);
+  tPart->SetBranchAddress("particle",&part_id);
   tPart->SetBranchAddress("particle_type",&part_pdg);
   tPart->SetBranchAddress("vz",&part_vz);
   tPart->SetBranchAddress("px",&part_px);
@@ -88,10 +88,9 @@ void analyse_tracking_efficiency(TString dir = "acts_pi_16", double etaMean = 1.
       double phi = m_ePHI_fit->at(it);
       v.SetMagThetaPhi(1./qp, theta, phi);
       double ptRC = v.Pt();
-
-      ActsFatras::Barcode barcode(m_majorityParticleId->at(it));
+      auto barcode = ActsFatras::Barcode().withData(m_majorityParticleId->at(it));
       int ip = barcode.particle()-1;
-      if (ip==65534) continue;
+      if (ip < 0) continue;
       int pdg = part_pdg->at(ip);
       float vz = part_vz->at(ip);
       float ptMC = part_pt->at(ip);

@@ -25,7 +25,7 @@ double quadratic_sum(double* x, double* par){
 }
 
 
-void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "notpc_pi_22", bool refit = 0){
+void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "notpc_pi_19", bool refit = 0){
   dir1.Append("/");
   dir2.Append("/");
   dir3.Append("/");
@@ -35,7 +35,7 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString d
   TFile* f3 = new TFile(dir3 + (refit ? "resolution_refit.root" : "resolution.root"));
   TGraph* gRes16 = (TGraph*) f1->Get(Form("gRes%s16",pid.Data()));
   TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
-  TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s22",pid.Data()));
+  TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s19",pid.Data()));
 
   const int nPtBins = 25;
   double pt[nPtBins]={0.005,0.007,0.01,0.015,0.02,0.03,0.04,0.05,0.07,0.1,0.12,0.15,0.2,0.22, 0.25,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,5}; // GeV
@@ -107,33 +107,33 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString d
 
   fMS->SetParameters(N, B*L0*tan(theta[0]), d_over_X0/cos(theta[0]), m*sin(theta[0]));
   fMS->SetLineColor(kBlue-10);
-  fMS->DrawCopy("same");
   fRes->SetParameter(0,sigma_rf/(0.3*B*L0*L0*tan(theta[0])*tan(theta[0]))*sqrt(720*N*N*N/((N-1)*(N+1)*(N+2)*(N+3)))/100);
   fRes->SetLineColor(kBlue-10);
-  fRes->DrawCopy("same");
   fSum->SetParameters(fRes->GetParameter(0),fMS->GetParameter(0),fMS->GetParameter(1),fMS->GetParameter(2),fMS->GetParameter(3));
   fSum->SetLineColor(kBlue);
-  fSum->DrawCopy("same");
+  // fMS->DrawCopy("same");
+  // fRes->DrawCopy("same");
+  // fSum->DrawCopy("same");
 
   fMS->SetParameters(N, B*L0*tan(theta[1]), d_over_X0/cos(theta[1]), m*sin(theta[1]));
   fMS->SetLineColor(kMagenta-10);
-  fMS->DrawCopy("same");
   fRes->SetParameter(0,sigma_rf/(0.3*B*L0*L0*tan(theta[1])*tan(theta[1]))*sqrt(720*N*N*N/((N-1)*(N+1)*(N+2)*(N+3)))/100);
   fRes->SetLineColor(kMagenta-10);
-  fRes->DrawCopy("same");
   fSum->SetParameters(fRes->GetParameter(0),fMS->GetParameter(0),fMS->GetParameter(1),fMS->GetParameter(2),fMS->GetParameter(3));
   fSum->SetLineColor(kMagenta);
-  fSum->DrawCopy("same");
+  // fMS->DrawCopy("same");
+  // fRes->DrawCopy("same");
+  // fSum->DrawCopy("same");
   
   fMS->SetParameters(N, B*L0*tan(theta[2]), d_over_X0/cos(theta[2]), m*sin(theta[2]));
   fMS->SetLineColor(kRed-10);
-  fMS->DrawCopy("same");
   fRes->SetParameter(0,sigma_rf/(0.3*B*L0*L0*tan(theta[2])*tan(theta[2]))*sqrt(720*N*N*N/((N-1)*(N+1)*(N+2)*(N+3)))/100);
   fRes->SetLineColor(kRed-10);
-  fRes->DrawCopy("same");
   fSum->SetParameters(fRes->GetParameter(0),fMS->GetParameter(0),fMS->GetParameter(1),fMS->GetParameter(2),fMS->GetParameter(3));
   fSum->SetLineColor(kRed);
-  fSum->DrawCopy("same");
+  // fMS->DrawCopy("same");
+  // fRes->DrawCopy("same");
+  // fSum->DrawCopy("same");
 
   // vGraphRes[0]->Draw();
   // vGraphRes[1]->Draw("same");
@@ -155,7 +155,7 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString d
 
   TLegend* legend = new TLegend(0.45,0.68,0.65,0.85);
   legend->SetBorderSize(0);
-  legend->AddEntry(gRes22,"#eta = 2.2","l");
+//  legend->AddEntry(gRes22,"#eta = 2.2","l");
   legend->AddEntry(gRes19,"#eta = 1.9","l");
   legend->AddEntry(gRes16,"#eta = 1.6","l");
   legend->Draw();

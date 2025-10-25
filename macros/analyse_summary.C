@@ -56,7 +56,7 @@ using namespace std;
   /// The number of hits from majority particle
   std::vector<unsigned int>* m_nMajorityHits = new std::vector<unsigned int>;
   /// The particle Id of the majority particle
-  std::vector<uint64_t>* m_majorityParticleId = new std::vector<uint64_t>;
+  std::vector<std::vector<std::uint32_t>>* m_majorityParticleId = new std::vector<std::vector<std::uint32_t>>;
   /// Charge of majority particle
   std::vector<int>* m_t_charge = new std::vector<int>;
   /// Time of majority particle
