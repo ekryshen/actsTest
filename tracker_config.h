@@ -57,7 +57,7 @@ double radLenAluminium = 8.897; // cm
 //double thickness = 0.01; // cm
 double thickness = 0.004; // cm
 double rMinStation = 35.7; // cm
-double rMaxStation = 130.; // cm
+double rMaxStation = 135.; // cm
 
 double eps = 1e-10; // cm
 double radLenFractionROC = 0.25;

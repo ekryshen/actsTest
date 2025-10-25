@@ -45,10 +45,10 @@ int main(int argc, char *argv[]){
   // default parameters
   TString inputDir = "none";
   TString outputDir = "test";
-  int nEvents = 10000;
+  int nEvents = 100000;
   //Acts::PdgParticle pdgCode = Acts::eProton;
   Acts::PdgParticle pdgCode = Acts::ePionPlus;
-  double etaMin = 1.7;
+  double etaMin = 1.9;
   double vzMax = 50;
   double radLengthPerSeed = 0.01;
 
@@ -56,8 +56,8 @@ int main(int argc, char *argv[]){
   // double ptMax = 1.000_GeV+1.e-100_GeV;
   // double ptMin = 0.100_GeV;
   // double ptMax = 1.000_GeV +1e-100_GeV;
-  double ptMin = 0.500_GeV;
-  double ptMax = 0.500_GeV +1e-100_GeV;
+  double ptMin = 0.100_GeV;
+  double ptMax = 1.000_GeV +1e-100_GeV;
 
   // double ptMin = 0.350_GeV;
   // double ptMax = 0.350_GeV +1e-100_GeV;
@@ -232,12 +232,12 @@ int main(int argc, char *argv[]){
   seedingCfg.seedFinderConfig.deltaRMax          = (1-positions[iM]/positions[iF])*rMaxStation*cm + 1_mm;
   seedingCfg.seedFinderConfig.zMin               = positions[iB]*cm - 1_mm;
   seedingCfg.seedFinderConfig.zMax               = positions[iF]*cm + 1_mm;
-  seedingCfg.seedFinderConfig.rMin               = rMinStation*cm;
-  seedingCfg.seedFinderConfig.rMax               = rMaxStation*cm;
-  seedingCfg.seedFinderConfig.rMinMiddle         = rMinStation*cm;
-  seedingCfg.seedFinderConfig.rMaxMiddle         = rMaxStation*cm;
+  seedingCfg.seedFinderConfig.rMin               = layerRMin[iB]*cm;
+  seedingCfg.seedFinderConfig.rMax               = layerRMax[iF]*cm;
+  seedingCfg.seedFinderConfig.rMinMiddle         = layerRMin[iM]*cm;
+  seedingCfg.seedFinderConfig.rMaxMiddle         = layerRMax[iM]*cm;
   seedingCfg.seedFinderConfig.cotThetaMax        = 7.0;  
-  seedingCfg.seedFinderConfig.impactMax          = rMinStation*cm - 10_mm;
+  seedingCfg.seedFinderConfig.impactMax          = layerRMin[iB]*cm - 10_mm;
   seedingCfg.seedFinderConfig.collisionRegionMin = -vzMax*cm; // important at low momenta due to mult scattering effects
   seedingCfg.seedFinderConfig.collisionRegionMax = +vzMax*cm; // important at low momenta due to mult scattering effects
   seedingCfg.seedFinderConfig.radLengthPerSeed   = radLengthPerSeed;
