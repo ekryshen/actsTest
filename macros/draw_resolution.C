@@ -25,7 +25,7 @@ double quadratic_sum(double* x, double* par){
 }
 
 
-void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "notpc_pi_19", bool refit = 0){
+void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "roc_pi_19", bool refit = 0){
   dir1.Append("/");
   dir2.Append("/");
   dir3.Append("/");
@@ -101,7 +101,7 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString d
   TCanvas* c = new TCanvas("c", "c", 1200, 900);
   gPad->SetRightMargin(0.02);
   gPad->SetTopMargin(0.02);
-  TH1F* hFrame = gPad->DrawFrame(0.,0.,1.1,0.15);
+  TH1F* hFrame = gPad->DrawFrame(0.,0.,1.1,0.10);
   hFrame->SetTitle(";p_{T}^{MC} (GeV/c); Resolution");
   hFrame->GetXaxis()->SetTitleOffset(1.2);
 

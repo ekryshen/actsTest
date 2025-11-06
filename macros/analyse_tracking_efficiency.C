@@ -7,7 +7,16 @@
 #include "ActsFatras/EventData/Barcode.hpp"
 #include "analyse_summary.C"
 
-void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0){
+
+//void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0){
+//void analyse_tracking_efficiency(TString dir = "notpc_pi_16", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0){
+
+//void analyse_tracking_efficiency(TString dir = "notpc_pi_16_7deg", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0){
+//void analyse_tracking_efficiency(TString dir = "notpc_pi_19_7deg", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0){
+void analyse_tracking_efficiency(TString dir = "roc_pi_19_7deg", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0){
+//void analyse_tracking_efficiency(TString dir = "roc_pi_16_7deg", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0){
+//void analyse_tracking_efficiency(TString dir = "roc_pi_19_15deg", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0){
+//void analyse_tracking_efficiency(TString dir = "roc_pi_16_15deg", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0){
   dir.Append("/");
 
   // setup particles
@@ -44,6 +53,9 @@ void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1
   TH1D* hRcPtPi = new TH1D("hRcPtPi","",100,0.,1.);
   TH1D* hRcPtPr = new TH1D("hRcPtPr","",100,0.,1.);
 
+  TH2D* hPResVsPtPi = new TH2D("hPResVsPtPi","",20,0.,1.,2000,-1.,1.);
+  TH2D* hPResVsPtPr = new TH2D("hPResVsPtPr","",20,0.,1.,2000,-1.,1.);
+
   TH2D* hPtResVsPtPi = new TH2D("hPtResVsPtPi","",20,0.,1.,2000,-1.,1.);
   TH2D* hPtResVsPtPr = new TH2D("hPtResVsPtPr","",20,0.,1.,2000,-1.,1.);
 
@@ -60,6 +72,8 @@ void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1
   TH2D* hPullQOPvsPtPr = new TH2D("hPullQOPvsPtPr","",20,0.,1.,200,-10,10);
   TH2D* hPullDvsPtPr   = new TH2D("hPullDvsPtPr","",20,0.,1.,200,-10,10);
   TH2D* hPullZvsPtPr   = new TH2D("hPullZvsPtPr","",20,0.,1.,200,-10,10);
+  TH1D* hMeasurements  = new TH1D("hMeasurements","",30,0,30.);
+
 
   for (int ev=0;ev<tPart->GetEntries();ev++){
     tPart->GetEntry(ev);
@@ -83,10 +97,12 @@ void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1
 
     for (int it=0; it<m_majorityParticleId->size(); it++){
       if (!m_hasFittedParams->at(it)) continue;
+      hMeasurements->Fill(m_nMeasurements->at(it));
       double qp = m_eQOP_fit->at(it);
       double theta = m_eTHETA_fit->at(it);
       double phi = m_ePHI_fit->at(it);
       v.SetMagThetaPhi(1./qp, theta, phi);
+      double pRC = v.Mag();
       double ptRC = v.Pt();
       auto barcode = ActsFatras::Barcode().withData(m_majorityParticleId->at(it));
       int ip = barcode.particle()-1;
@@ -97,10 +113,12 @@ void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1
       float etaMC = part_eta->at(ip);
       float phiMC = part_phi->at(ip);
       vMC.SetPtEtaPhi(ptMC, etaMC, phiMC);
+      double pMC = vMC.Mag();
       float qpMC = 1/vMC.Mag();
       if (abs(etaMC-etaMean)<etaDif && abs(vz)<1.) {
         if (abs(pdg)== 211) {
           hRcPtPi->Fill(ptMC);
+          hPResVsPtPi->Fill(ptMC,(pRC-pMC)/pMC);
           hPtResVsPtPi->Fill(ptMC,(ptRC-ptMC)/ptMC);
           hResQOPvsPtPi->Fill(ptMC,m_eQOP_fit->at(it)-qpMC);
           hResDvsPtPi->Fill(ptMC,m_eLOC0_fit->at(it)/10.);
@@ -111,6 +129,7 @@ void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1
         }
         if (abs(pdg)==2212) {
           hRcPtPr->Fill(ptMC);
+          hPResVsPtPr->Fill(ptMC,(pRC-pMC)/pMC);
           hPtResVsPtPr->Fill(ptMC,(ptRC-ptMC)/ptMC);
           hResQOPvsPtPr->Fill(ptMC,m_eQOP_fit->at(it)-qpMC);
           hResDvsPtPr->Fill(ptMC,m_eLOC0_fit->at(it)/10.);
@@ -144,10 +163,13 @@ void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1
   hPtResVsPtPr->Draw();
 
   TFile* f = new TFile(TString(dir + (refit ? "tracking_efficiency_refit.root" : "tracking_efficiency.root") ),"update");
+  hMeasurements->Write(Form("hMeasurements%.0f",etaMean*10));
   hMcPtPi->Write(Form("hMcPtPi%.0f",etaMean*10));
   hMcPtPr->Write(Form("hMcPtPr%.0f",etaMean*10));
   hRcPtPi->Write(Form("hEffPtPi%.0f",etaMean*10));
   hRcPtPr->Write(Form("hEffPtPr%.0f",etaMean*10));
+  hPResVsPtPi->Write(Form("hPResVsPtPi%.0f",etaMean*10));
+  hPResVsPtPr->Write(Form("hPResVsPtPr%.0f",etaMean*10));
   hPtResVsPtPi->Write(Form("hPtResVsPtPi%.0f",etaMean*10));
   hPtResVsPtPr->Write(Form("hPtResVsPtPr%.0f",etaMean*10));
   hResQOPvsPtPi->Write(Form("hResQOPvsPtPi%.0f",etaMean*10));
