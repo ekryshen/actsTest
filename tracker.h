@@ -57,181 +57,13 @@ Acts::GeometryContext gctx;
 Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 0, bool addFlange = 0){
   auto gctx = Acts::GeometryContext();
 
+  auto aluminium = Acts::Material::fromMassDensity(8.897_cm, 39.70_cm, 26.9815, 13, 2.699_g / 1_cm3);
   auto silicon = Acts::Material::fromMassDensity(9.370_cm, 46.52_cm, 28.0855, 14, 2.329_g / 1_cm3);
   auto vacuum = Acts::Material::fromMassDensity(1e+10_cm, 1e+10_cm, 1.0000, 1, 1e-10_g / 1_cm3);
   auto volumeMaterial = std::make_shared<Acts::HomogeneousVolumeMaterial>(vacuum);
 
   std::vector<float> layerBinEdges;
   std::vector<std::pair<std::shared_ptr<const Acts::Layer>, Acts::Vector3>> layerOrderVec;
-  // add first navigation layer
-  Acts::Transform3 tr1 = Acts::Transform3::Identity();
-  tr1.translate(Acts::Vector3(0, 0, positions[0]*cm - 20));
-  const auto pBounds = std::make_shared<const Acts::RectangleBounds>(rMaxStation*cm, rMaxStation*cm);
-  auto layer = Acts::PlaneLayer::create(tr1, pBounds, nullptr, 1_mm, nullptr, Acts::navigation);
-  layerOrderVec.emplace_back(layer, layer->referencePosition(gctx, Acts::AxisDirection::AxisZ));
-  layerBinEdges.push_back(positions[0]*cm - 30);
-  layerBinEdges.push_back(positions[0]*cm - 10);
-
-  for (int i = 0; i < positions.size(); ++i) {
-    double rmin = layerRMin[i] * cm;
-    double rmax = layerRMax[i] * cm;
-    layerBinEdges.push_back(i < positions.size()-1 ? (positions[i] + positions[i+1])/2.*cm : positions.back()*cm+ 1);
-
-    if (layerType[i]==2) {
-      const auto pBounds = std::make_shared<const Acts::RectangleBounds>(rmax, rmax);
-      Acts::Transform3 trafo = Acts::Transform3::Identity();
-      trafo.translate(Acts::Vector3(0, 0, positions[i]*cm));
-      auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(trafo, pBounds);
-      double surfThickness = 0.0001 * cm;
-      double layerThickness = 0.0001 * cm;
-      auto matProp = Acts::MaterialSlab(silicon, surfThickness);
-      auto surfaceMaterial = std::make_shared<Acts::HomogeneousSurfaceMaterial>(matProp);
-      surface->assignSurfaceMaterial(std::move(surfaceMaterial));
-      auto surArray = std::unique_ptr<Acts::SurfaceArray>(new Acts::SurfaceArray(surface));
-      auto layer = Acts::PlaneLayer::create(trafo, pBounds, std::move(surArray), layerThickness, nullptr, Acts::active);
-      surface->associateLayer(*layer.get());
-      layerOrderVec.emplace_back(layer, layer->referencePosition(gctx, Acts::AxisDirection::AxisZ));
-      auto detElement = std::make_shared<MyDetectorElement>(std::make_shared<const Acts::Transform3>(trafo), surface, surfThickness);
-      surface->assignDetectorElement(*detElement.get());
-      detectorStore.push_back(std::move(detElement));
-      continue;
-    }
-
-    double angleRot = 0;
-    if (layerType[i]==5) angleRot = 7.*M_PI/180.;
-    if (layerType[i]==6) angleRot =-7.*M_PI/180.;
-    // create surface material
-    double surfThickness = thickness * cm;
-    double layerThickness = thickness * cm;
-    auto matProp = Acts::MaterialSlab(silicon, surfThickness);
-    auto surfaceMaterial = std::make_shared<Acts::HomogeneousSurfaceMaterial>(matProp);
-    // create surface array
-    // double rmin = 0.1 * cm;
-    // double rmax = 150 * cm;
-    double rc = 0.5 * (rmax + rmin);   
-    double hl = 0.5 * (rmax - rmin);
-    double hw = 0.2 * cm;
-    const auto sBounds = std::make_shared<const Acts::RectangleBounds>(hw, hl);
-    int nTubes = numberOfTubes[i];
-    std::vector<std::shared_ptr<const Acts::Surface>> vSurfaces;
-    for (int iTube = 0; iTube < nTubes; iTube++) {
-      double phi = layerAngle[i] + 2*M_PI/nTubes*(iTube+0.5);
-      double cosp = cos(phi);
-      double sinp = sin(phi);
-      auto stransform = Acts::Transform3::Identity();
-      stransform.translate(Acts::Vector3(rc*cosp, rc*sinp, positions[i] * cm));
-      stransform.rotate(Eigen::AngleAxisd(M_PI/2 + phi + angleRot, Acts::Vector3(0, 0, 1)));
-      auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(stransform, sBounds);
-      surface->assignSurfaceMaterial(surfaceMaterial);
-      // create detector element
-      auto detElement = std::make_shared<MyDetectorElement>(std::make_shared<const Acts::Transform3>(stransform), surface, surfThickness);
-      surface->assignDetectorElement(*detElement);
-      detectorStore.push_back(std::move(detElement));
-      vSurfaces.push_back(std::move(surface));
-    }
-    auto trafo = Acts::Transform3::Identity();
-    trafo.translate(Acts::Vector3(0., 0., positions[i] * cm));
-    const auto rBounds = std::make_shared<const Acts::RadialBounds>(rmin, rmax);
-    
-    // creating custom surface array (surfaceArrayCreator.surfaceArrayOnDisc doesn't work)
-    double tol = 1.;
-    Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Closed> axisPhi(-M_PI, M_PI, nTubes);
-    Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Bound> axisR(rmin, rmax, 1);
-    using SGL = Acts::SurfaceArray::SurfaceGridLookup<decltype(axisR), decltype(axisPhi)>;
-    std::vector<Acts::AxisDirection> axisDirections = {Acts::AxisDirection::AxisR, Acts::AxisDirection::AxisPhi};
-    auto repsurface = Acts::Surface::makeShared<Acts::DiscSurface>(trafo, rBounds);
-    auto gridLookup = std::make_unique<SGL>(repsurface, tol, std::pair{axisR, axisPhi}, axisDirections);
-    std::vector<const Acts::Surface*> surfacesRaw = unpackSmartPointers(vSurfaces);
-    gridLookup->fill(gctx, surfacesRaw);
-    auto surArray = std::unique_ptr<Acts::SurfaceArray>(new Acts::SurfaceArray(std::move(gridLookup),vSurfaces, trafo));
-
-    auto layer = Acts::DiscLayer::create(trafo, rBounds, std::move(surArray), layerThickness, nullptr, Acts::active);
-
-    for (auto& surface : vSurfaces) {
-      auto mutableSurface = const_cast<Acts::Surface*>(surface.get());
-      mutableSurface->associateLayer(*layer);
-    }
-
-    layerOrderVec.emplace_back(layer, layer->referencePosition(gctx, Acts::AxisDirection::AxisZ));
-  }
-  auto binning = std::make_unique<const Acts::BinUtility>(layerBinEdges, Acts::open, Acts::AxisDirection::AxisZ, Acts::Transform3::Identity());
-  auto layArr = std::make_unique<Acts::BinnedArrayXD<Acts::LayerPtr>>(layerOrderVec, std::move(binning));
- 
-  auto boundsVol = std::make_shared<Acts::CuboidVolumeBounds>(2000._mm, 2000._mm, 3100._mm);
-  auto trackVolume = std::make_shared<Acts::TrackingVolume>(Acts::Transform3::Identity(), boundsVol, volumeMaterial, std::move(layArr), nullptr, Acts::MutableTrackingVolumeVector{}, "Telescope");
-  auto trackingGeometry = new Acts::TrackingGeometry(trackVolume);
-
-  Acts::ObjVisualization3D objVis;
-  const Acts::TrackingVolume& tgVolume = *(trackingGeometry->highestTrackingVolume());
-  Acts::GeometryView3D::drawTrackingVolume(objVis, tgVolume, gctx);
-
-  // Check geometry
-  bool print_surface_info = 0;
-  if (print_surface_info) {
-    const Acts::TrackingVolume *highestTrackingVolume = trackingGeometry->highestTrackingVolume();
-    printf("volumeId = %lu\n", highestTrackingVolume->geometryId().value());
-    const Acts::LayerArray *confinedLayers = highestTrackingVolume->confinedLayers();
-    for (const auto &layer : confinedLayers->arrayObjects())  {
-      std::cout << "  layerId = " << layer->geometryId();
-      printf("  thickness = %f type = %d\n", layer->thickness(), layer->layerType());
-      if (layer->layerType()==-1) {
-        const Acts::NavigationLayer* nlayer = dynamic_cast<const Acts::NavigationLayer*>(layer.get());
-        //printf(" navigation %p\n", nlayer);
-      } else if (layer->layerType()==1) {
-        const Acts::DiscLayer* player = dynamic_cast<const Acts::DiscLayer*>(layer.get());
-        printf(" disk %p\n", player);
-        auto pos = Acts::Vector3(920,4,0);
-        auto dir = Acts::Vector3(0,0,1);
-        auto v = layer->surfaceArray()->neighbors(pos, dir);
-        printf("    v.size()=%d\n",v.size());
-        // for (auto& s : v) { std::cout << "    v.surfaceId = " << s->geometryId() << std::endl;  }
-        // std::cout << std::endl;
-      } else {
-        const Acts::PlaneLayer* player = dynamic_cast<const Acts::PlaneLayer*>(layer.get());
-        printf(" plane %p\n", player);
-        auto pos = Acts::Vector3(920,4,0);
-        auto dir = Acts::Vector3(0,0,1);
-        auto v = layer->surfaceArray()->neighbors(pos, dir);
-        printf("    v.size()=%d\n",v.size());
-        // for (auto& s : v) { std::cout << "    v.surfaceId = " << s->geometryId() << std::endl;  }
-        // std::cout << std::endl;
-      }
-      if (!layer->surfaceArray())
-        continue;
-      for (const auto &surface : layer->surfaceArray()->surfaces())
-      {
-        std::cout << "    surfaceId = " << surface->geometryId();
-      }
-    } //for layers
-  } // print_surface_info
-
-
-  return trackingGeometry;
-}
-
-
-Acts::TrackingGeometry* CreateTrackingGeometry2(bool addROC = 0, bool addFlange = 0){
-  // Create materials
-  // auto* nist = G4NistManager::Instance();
-  // G4Material* siMat = nist->FindOrBuildMaterial("G4_Si");
-  // G4Material* alMat = nist->FindOrBuildMaterial("G4_Al");
-  // G4Material* worldMat = nist->FindOrBuildMaterial("G4_Galactic");
-
-  // Acts::Geant4MaterialConverter converter;
-  // Acts::Material silicon = converter.material(*siMat);
-  // Acts::Material aluminium = converter.material(*alMat);
-  // Acts::Material vacuum = converter.material(*worldMat);
-  auto aluminium = Acts::Material::fromMassDensity(8.897_cm, 39.70_cm, 26.9815, 13, 2.699_g / 1_cm3);
-  auto silicon = Acts::Material::fromMassDensity(9.370_cm, 46.52_cm, 28.0855, 14, 2.329_g / 1_cm3);
-  auto vacuum = Acts::Material::fromMassDensity(1.176e+4_cm, 7.204e+4_cm, 39.948, 18, 1.662e-10_g / 1_cm3);
-
-  Acts::MaterialSlab matProp(silicon, thickness*cm);
-  const auto surfaceMaterial = std::make_shared<Acts::HomogeneousSurfaceMaterial>(matProp);
-  const auto volumeMaterial = std::make_shared<Acts::HomogeneousVolumeMaterial>(vacuum);
-
-  // Construct the surfaces and layers
-  Acts::LayerVector layVec;
- 
 
   if (addROC) {
     double phi[nSectors];
@@ -249,7 +81,9 @@ Acts::TrackingGeometry* CreateTrackingGeometry2(bool addROC = 0, bool addFlange 
     auto surArray = std::unique_ptr<Acts::SurfaceArray>(new Acts::SurfaceArray(surface));
     auto layer = Acts::DiscLayer::create(trafo, rBoundsROC, std::move(surArray), thicknessROC*cm, nullptr, Acts::active);
     surface->associateLayer(*layer.get());
-    layVec.push_back(layer);
+    layerOrderVec.emplace_back(layer, layer->referencePosition(gctx, Acts::AxisDirection::AxisZ));
+    layerBinEdges.push_back(zROC*cm - thicknessROC/2.*cm);
+    layerBinEdges.push_back(zROC*cm + thicknessROC/2.*cm);
 
     if (addFlange) {
       Acts::MaterialSlab matPropFrame(aluminium, thicknessFrame*cm);
@@ -292,77 +126,144 @@ Acts::TrackingGeometry* CreateTrackingGeometry2(bool addROC = 0, bool addFlange 
         auto mutableSurface = const_cast<Acts::Surface*>(surface.get());
         mutableSurface->associateLayer(*layerFrame.get());
       }
-      layVec.push_back(layerFrame);
+      layerOrderVec.emplace_back(layerFrame, layerFrame->referencePosition(gctx, Acts::AxisDirection::AxisZ));
+      layerBinEdges.push_back(zFrameRadial*cm + thicknessFrame/2.*cm);
     }
   }
 
+  // add first navigation layer
+  Acts::Transform3 tr1 = Acts::Transform3::Identity();
+  tr1.translate(Acts::Vector3(0, 0, positions[0]*cm - 20));
+  const auto pBounds = std::make_shared<const Acts::RectangleBounds>(rMaxStation*cm, rMaxStation*cm);
+  auto layer = Acts::PlaneLayer::create(tr1, pBounds, nullptr, 1_mm, nullptr, Acts::navigation);
+  layerOrderVec.emplace_back(layer, layer->referencePosition(gctx, Acts::AxisDirection::AxisZ));
+  layerBinEdges.push_back(positions[0]*cm - 30); // TODO adjust bin edges
+  layerBinEdges.push_back(positions[0]*cm - 10); // TODO adjust bin edges
 
-  // const auto rBounds = std::make_shared<const Acts::RadialBounds>(rMinStation, rMaxStation);  // <- for disk-like layers
-  const auto pBounds = std::make_shared<const Acts::RectangleBounds>(rMaxStation*cm, rMaxStation*cm); // <- for square-like layers
-  for (unsigned int i = 0; i < positions.size(); i++) {
-    Acts::Transform3 trafo = Acts::Transform3::Identity();
-    trafo.translate(Acts::Vector3(0, 0, positions[i]*cm));
-    if (i%2==1) trafo.rotate(Eigen::AngleAxisd(std::numbers::pi/2, Acts::Vector3(0, 0, 1))); // for strip-like simulations
-    // create surface
-    // auto surface = Acts::Surface::makeShared<Acts::DiscSurface>(trafo, rMinStation, rMaxStation); // <- for disk-like layers
-    auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(trafo, pBounds); // <- for square-like layers
-    surface->assignSurfaceMaterial(std::move(surfaceMaterial));
-    auto surArray = std::unique_ptr<Acts::SurfaceArray>(new Acts::SurfaceArray(surface));
-    // create layer
-    // auto layer = Acts::DiscLayer::create(trafo, rBounds, std::move(surArray), 1._mm); // <- for disk-like layers
-    auto layer = Acts::PlaneLayer::create(trafo, pBounds, std::move(surArray), 1._mm); // <- for square-like layers
-    surface->associateLayer(*layer.get());
-    layVec.push_back(layer);
-    // create detector element
-    auto detElement = std::make_shared<MyDetectorElement>(std::make_shared<const Acts::Transform3>(trafo), surface, thickness*cm);
-    surface->assignDetectorElement(*detElement.get());
-    detectorStore.push_back(std::move(detElement));
+  for (int i = 0; i < positions.size(); ++i) {
+    double rmin = layerRMin[i] * cm;
+    double rmax = layerRMax[i] * cm;
+    layerBinEdges.push_back(i < positions.size()-1 ? (positions[i] + positions[i+1])/2.*cm : positions.back()*cm + 1);
+    double thickness = layerThickness[i] * cm;
+    // create surface material
+    auto matProp = Acts::MaterialSlab(silicon, thickness);
+    auto surfaceMaterial = std::make_shared<Acts::HomogeneousSurfaceMaterial>(matProp);
+
+    if (layerType[i]==2) {
+      const auto pBounds = std::make_shared<const Acts::RectangleBounds>(rmax, rmax);
+      Acts::Transform3 trafo = Acts::Transform3::Identity();
+      trafo.translate(Acts::Vector3(0, 0, positions[i]*cm));
+      auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(trafo, pBounds);
+      surface->assignSurfaceMaterial(std::move(surfaceMaterial));
+      auto surArray = std::unique_ptr<Acts::SurfaceArray>(new Acts::SurfaceArray(surface));
+      auto layer = Acts::PlaneLayer::create(trafo, pBounds, std::move(surArray), thickness, nullptr, Acts::active);
+      surface->associateLayer(*layer.get());
+      layerOrderVec.emplace_back(layer, layer->referencePosition(gctx, Acts::AxisDirection::AxisZ));
+      auto detElement = std::make_shared<MyDetectorElement>(std::make_shared<const Acts::Transform3>(trafo), surface, thickness);
+      surface->assignDetectorElement(*detElement.get());
+      detectorStore.push_back(std::move(detElement));
+      continue;
+    }
+
+    double angleRot = 0;
+    if (layerType[i]==4) angleRot = 0;
+    if (layerType[i]==5) angleRot = angleRotDeg*M_PI/180.;
+    if (layerType[i]==6) angleRot =-angleRotDeg*M_PI/180.;
+    double rc = 0.5 * (rmax + rmin);   
+    double hl = 0.5 * (rmax - rmin) / cos(angleRot);
+    double hw = layerStripWidth * cm;
+    const auto sBounds = std::make_shared<const Acts::RectangleBounds>(hw, hl);
+    int nTubes = numberOfTubes[i];
+    std::vector<std::shared_ptr<const Acts::Surface>> vSurfaces;
+    for (int iTube = 0; iTube < nTubes; iTube++) {
+      double phi = layerAngle[i] + 2*M_PI/nTubes*(iTube+0.5);
+      double cosp = cos(phi);
+      double sinp = sin(phi);
+      auto stransform = Acts::Transform3::Identity();
+      stransform.translate(Acts::Vector3(rc*cosp, rc*sinp, positions[i] * cm));
+      stransform.rotate(Eigen::AngleAxisd(M_PI/2 + phi + angleRot, Acts::Vector3(0, 0, 1)));
+      auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(stransform, sBounds);
+      surface->assignSurfaceMaterial(surfaceMaterial);
+      auto detElement = std::make_shared<MyDetectorElement>(std::make_shared<const Acts::Transform3>(stransform), surface, thickness);
+      surface->assignDetectorElement(*detElement);
+      detectorStore.push_back(std::move(detElement));
+      vSurfaces.push_back(std::move(surface));
+    }
+    auto trafo = Acts::Transform3::Identity();
+    trafo.translate(Acts::Vector3(0., 0., positions[i] * cm));
+    const auto rBounds = std::make_shared<const Acts::RadialBounds>(rmin - 10, rmax + 10); // TODO check layer dimensions
+    
+    // creating custom surface array (surfaceArrayCreator.surfaceArrayOnDisc doesn't work)
+    double tol = 1.;
+    Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Closed> axisPhi(-M_PI, M_PI, 18); // TODO check binning
+    Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Bound> axisR(rmin, rmax, 1);
+    using SGL = Acts::SurfaceArray::SurfaceGridLookup<decltype(axisR), decltype(axisPhi)>;
+    std::vector<Acts::AxisDirection> axisDirections = {Acts::AxisDirection::AxisR, Acts::AxisDirection::AxisPhi};
+    auto repsurface = Acts::Surface::makeShared<Acts::DiscSurface>(trafo, rBounds);
+    auto gridLookup = std::make_unique<SGL>(repsurface, tol, std::pair{axisR, axisPhi}, axisDirections);
+    std::vector<const Acts::Surface*> surfacesRaw = unpackSmartPointers(vSurfaces);
+    gridLookup->fill(gctx, surfacesRaw);
+    auto surArray = std::unique_ptr<Acts::SurfaceArray>(new Acts::SurfaceArray(std::move(gridLookup),vSurfaces, trafo));
+
+    auto layer = Acts::DiscLayer::create(trafo, rBounds, std::move(surArray), thickness, nullptr, Acts::active);
+
+    for (auto& surface : vSurfaces) {
+      auto mutableSurface = const_cast<Acts::Surface*>(surface.get());
+      mutableSurface->associateLayer(*layer);
+    }
+
+    layerOrderVec.emplace_back(layer, layer->referencePosition(gctx, Acts::AxisDirection::AxisZ));
   }
-
-  // Create layer array
-  Acts::LayerArrayCreator::Config lacConfig;
-  Acts::LayerArrayCreator layArrCreator(lacConfig, Acts::getDefaultLogger("LayerArrayCreator", Acts::Logging::INFO));
-  std::unique_ptr<const Acts::LayerArray> layArr(layArrCreator.layerArray(gctx, layVec, 1500_mm, positions.back()*cm + 2._mm, Acts::BinningType::arbitrary, Acts::AxisDirection::AxisZ));
-
-  // Build mother tracking volume
-  Acts::Translation3 transVol(0, 0, 0);
-  Acts::Transform3 trafoVol(transVol);
-  auto boundsVol = std::make_shared<Acts::CuboidVolumeBounds>(2000._mm, 2000._mm, 3100._mm); // <- for square-like layers
-  auto trackVolume = std::make_shared<Acts::TrackingVolume>(trafoVol, boundsVol, volumeMaterial, std::move(layArr), nullptr, Acts::MutableTrackingVolumeVector{}, "Telescope");
-  // Build tracking geometry
+  auto binning = std::make_unique<const Acts::BinUtility>(layerBinEdges, Acts::open, Acts::AxisDirection::AxisZ, Acts::Transform3::Identity());
+  auto layArr = std::make_unique<Acts::BinnedArrayXD<Acts::LayerPtr>>(layerOrderVec, std::move(binning));
+ 
+  auto boundsVol = std::make_shared<Acts::CuboidVolumeBounds>(2000._mm, 2000._mm, 3100._mm);
+  auto trackVolume = std::make_shared<Acts::TrackingVolume>(Acts::Transform3::Identity(), boundsVol, volumeMaterial, std::move(layArr), nullptr, Acts::MutableTrackingVolumeVector{}, "Telescope");
   auto trackingGeometry = new Acts::TrackingGeometry(trackVolume);
-  auto gctx = Acts::GeometryContext();
-  Acts::ObjVisualization3D objVis;
-  const Acts::TrackingVolume& tgVolume = *(trackingGeometry->highestTrackingVolume());
-  Acts::GeometryView3D::drawTrackingVolume(objVis, tgVolume, gctx);
 
+  // Acts::ObjVisualization3D objVis;
+  // const Acts::TrackingVolume& tgVolume = *(trackingGeometry->highestTrackingVolume());
+  // Acts::GeometryView3D::drawTrackingVolume(objVis, tgVolume, gctx);
 
   // Check geometry
-  bool print_surface_info = 0;
+  bool print_surface_info = 1;
   if (print_surface_info) {
     const Acts::TrackingVolume *highestTrackingVolume = trackingGeometry->highestTrackingVolume();
-    printf("volumeId = %lu\n", highestTrackingVolume->geometryId().value());
+    std::cout << "  volumeId = " << highestTrackingVolume->geometryId() << std::endl;
     const Acts::LayerArray *confinedLayers = highestTrackingVolume->confinedLayers();
     for (const auto &layer : confinedLayers->arrayObjects())  {
-      printf("  layerId = %lu, thickness = %f type = %d\n", layer->geometryId().value(), layer->thickness(), layer->layerType());
+      bool isDisk = dynamic_cast<const Acts::DiscLayer*>(layer.get()) != nullptr;
+      bool isPlane = dynamic_cast<const Acts::PlaneLayer*>(layer.get()) != nullptr;
+      const char* shape = isDisk ? "disk" : (isPlane ? "plane" : "unknown");
+      std::cout << "  layerId = " << layer->geometryId();
+      printf("  thickness = %f type = %d shape = %s\n", layer->thickness(), layer->layerType(), shape);
+
       if (layer->layerType()==-1) {
         const Acts::NavigationLayer* nlayer = dynamic_cast<const Acts::NavigationLayer*>(layer.get());
-        printf(" navigation %p\n", nlayer);
-      } else if (layer->layerType()==0) {
+        //printf(" navigation %p\n", nlayer);
+      } else if (layer->layerType()==1 && isDisk) {
         const Acts::DiscLayer* player = dynamic_cast<const Acts::DiscLayer*>(layer.get());
-        printf(" disk %p\n", player);
-      } else {
+        // auto pos = Acts::Vector3(920,4,0);
+        // auto dir = Acts::Vector3(0,0,1);
+        // auto v = layer->surfaceArray()->neighbors(pos, dir);
+        // printf("    v.size()=%d\n",v.size());
+        // for (auto& s : v) { std::cout << "    v.surfaceId = " << s->geometryId() << std::endl;  }
+        // std::cout << std::endl;
+      } else if (layer->layerType()==1 && isPlane) {
         const Acts::PlaneLayer* player = dynamic_cast<const Acts::PlaneLayer*>(layer.get());
-        printf(" plane %p\n", player);
+        // printf("   plane %p\n", player);
       }
       if (!layer->surfaceArray())
         continue;
-      for (const auto &surface : layer->surfaceArray()->surfaces())
-      {
-        printf("    surfaceId = %lu\n", surface->geometryId().value());
-      }
+      // for (const auto &surface : layer->surfaceArray()->surfaces())
+      // {
+      //   std::cout << "    surfaceId = " << surface->geometryId();
+      // }
+      // std::cout << std::endl;
     } //for layers
   } // print_surface_info
+
+
   return trackingGeometry;
 }
 

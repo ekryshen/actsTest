@@ -44,11 +44,11 @@ using namespace Acts::UnitLiterals;
 int main(int argc, char *argv[]){
   // default parameters
   TString inputDir = "none";
-  TString outputDir = "test";
-  int nEvents = 100000;
+  TString outputDir = "roc_pi_16_7deg";
+  int nEvents = 1000;
   //Acts::PdgParticle pdgCode = Acts::eProton;
   Acts::PdgParticle pdgCode = Acts::ePionPlus;
-  double etaMin = 1.9;
+  double etaMin = 1.6;
   double vzMax = 50;
   double radLengthPerSeed = 0.01;
 
@@ -78,8 +78,11 @@ int main(int argc, char *argv[]){
   if (argc>=7) vzMax = TString(argv[6]).Atof();
   if (argc>=8) radLengthPerSeed = TString(argv[7]).Atof();
 
-  bool istpc = !outputDir.Contains("notpc");
+  bool isroc = !outputDir.Contains("noroc");
   bool isframe = !outputDir.Contains("noframe");
+  
+  isroc = 1;
+  isframe = 0;
 
   printf("Running acts: %d eta=%.1f vzMax=%.0f\n", pdgCode, etaMin, vzMax);
 
@@ -150,7 +153,7 @@ int main(int argc, char *argv[]){
   particleReaderCfg.filePath = TString(inputDir+"particles.root").Data();
 
   //auto trackingGeometryPtr = CreateTrackingGeometry(istpc, isframe);
-  auto trackingGeometryPtr = CreateTrackingGeometry(1, 1);
+  auto trackingGeometryPtr = CreateTrackingGeometry(isroc, isframe);
   auto trackingGeometry = std::make_shared<Acts::TrackingGeometry>(*trackingGeometryPtr);
 
   // Fatras config
@@ -163,6 +166,10 @@ int main(int argc, char *argv[]){
   fatrasCfg.magneticField = std::make_shared<Acts::ConstantBField>(Acts::Vector3(0.0, 0.0, bz*Acts::UnitConstants::T));
   fatrasCfg.randomNumbers = rnd;
 
+  int shift = 2;
+  if (isroc) shift++;
+  if (isframe) shift++;
+
   // Digitization component for strips
   ActsExamples::DigiComponentsConfig stripConfig;
   stripConfig.smearingDigiConfig.params.push_back(ActsExamples::ParameterSmearingConfig{Acts::eBoundLoc0, ActsExamples::Digitization::Gauss(0.1)});
@@ -174,9 +181,9 @@ int main(int argc, char *argv[]){
   std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements;
   for (int l=0; l<positions.size(); l++) {
     if (layerType[l]==2) {
-      elements.push_back( {Acts::GeometryIdentifier().withVolume(1).withLayer(l+2), digiConfig} );
+      elements.push_back( {Acts::GeometryIdentifier().withVolume(1).withLayer(l+shift), digiConfig} );
     } else {
-      elements.push_back( {Acts::GeometryIdentifier().withVolume(1).withLayer(l+2), stripConfig} );
+      elements.push_back( {Acts::GeometryIdentifier().withVolume(1).withLayer(l+shift), stripConfig} );
     }
   }
   // std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements = { {Acts::GeometryIdentifier{}, digiConfig} };
@@ -197,9 +204,9 @@ int main(int argc, char *argv[]){
   spCfg.trackingGeometry = trackingGeometry;
   spCfg.outputSpacePoints = spacepoints;
   spCfg.geometrySelection = {
-    Acts::GeometryIdentifier().withVolume(1).withLayer(5),
-    Acts::GeometryIdentifier().withVolume(1).withLayer(19),
-    Acts::GeometryIdentifier().withVolume(1).withLayer(33)
+    Acts::GeometryIdentifier().withVolume(1).withLayer( 3+shift),
+    Acts::GeometryIdentifier().withVolume(1).withLayer(17+shift),
+    Acts::GeometryIdentifier().withVolume(1).withLayer(31+shift)
   };
 
   // Create space points
@@ -227,7 +234,7 @@ int main(int argc, char *argv[]){
   seedingCfg.inputSpacePoints = {spacepoints};
   seedingCfg.outputSeeds = seeds;
   seedingCfg.seedFinderOptions.bFieldInZ = bz*Acts::UnitConstants::T;
-  seedingCfg.seedFinderConfig.minPt              = 0.1_GeV;
+  seedingCfg.seedFinderConfig.minPt              = 0.11_GeV;
   seedingCfg.seedFinderConfig.deltaZMax          = (positions[iM] - positions[iB])*cm + 1_mm;
   seedingCfg.seedFinderConfig.deltaRMax          = (1-positions[iM]/positions[iF])*rMaxStation*cm + 1_mm;
   seedingCfg.seedFinderConfig.zMin               = positions[iB]*cm - 1_mm;
@@ -263,9 +270,10 @@ int main(int argc, char *argv[]){
 
   // Measurement selector
   std::vector<std::pair<Acts::GeometryIdentifier, Acts::MeasurementSelectorCuts>> measSel;
+
   for (int l = 0; l < positions.size(); ++l) {
     double chi2 = layerType[l]==2 ? -1 : std::numeric_limits<double>::max();
-    measSel.emplace_back(Acts::GeometryIdentifier().withVolume(1).withLayer(l+2).withSensitive(0), Acts::MeasurementSelectorCuts({}, {chi2}, {1u}));
+    measSel.emplace_back(Acts::GeometryIdentifier().withVolume(1).withLayer(l+shift).withSensitive(0), Acts::MeasurementSelectorCuts({}, {chi2}, {1u}));
   }
   //trackFindingCfg.measurementSelectorCfg = {{Acts::GeometryIdentifier(), {{}, {std::numeric_limits<double>::max()}, {1u}}}}; // chi2cut, numberOfMeasurementsPerSurface
 
@@ -360,7 +368,7 @@ int main(int argc, char *argv[]){
   // Start sequencer
   ActsExamples::Sequencer sequencer(sequencerCfg);
   
-  if (inputDir.Contains("none")){ // particle gun + fartras simulation
+  if (inputDir.Contains("none")){ // particle gun + fatras simulation
     sequencer.addReader(std::make_shared<ActsExamples::EventGenerator>(evgenCfg, logLevel));
     sequencer.addAlgorithm(std::make_shared<ActsExamples::HepMC3InputConverter>(hepMC3ConverterCfg, logLevel));
     sequencer.addElement(std::make_shared<ActsExamples::FatrasSimulation>(fatrasCfg, logLevelFatras));
