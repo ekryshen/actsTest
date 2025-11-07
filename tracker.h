@@ -171,7 +171,7 @@ Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 0, bool addFlange =
     if (layerType[i]==6) angleRot =-angleRotDeg*M_PI/180.;
     double rc = 0.5 * (rmax + rmin);   
     double hl = 0.5 * (rmax - rmin) / cos(angleRot);
-    double hw = layerStripWidth * cm;
+    double hw = layerStripWidth/2. * cm;
     const auto sBounds = std::make_shared<const Acts::RectangleBounds>(hw, hl);
     int nTubes = numberOfTubes[i];
     std::vector<std::shared_ptr<const Acts::Surface>> vSurfaces;
