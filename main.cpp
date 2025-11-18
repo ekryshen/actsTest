@@ -44,7 +44,8 @@ using namespace Acts::UnitLiterals;
 int main(int argc, char *argv[]){
   // default parameters
   TString inputDir = "none";
-  TString outputDir = "roc_pi_16_7deg";
+  TString outputDir = "test";
+//  TString outputDir = "roc_pi_16_7deg";
   int nEvents = 1000;
   //Acts::PdgParticle pdgCode = Acts::eProton;
   Acts::PdgParticle pdgCode = Acts::ePionPlus;
@@ -56,8 +57,10 @@ int main(int argc, char *argv[]){
   // double ptMax = 1.000_GeV+1.e-100_GeV;
   // double ptMin = 0.100_GeV;
   // double ptMax = 1.000_GeV +1e-100_GeV;
-  double ptMin = 0.100_GeV;
-  double ptMax = 1.000_GeV +1e-100_GeV;
+  // double ptMin = 0.100_GeV;
+  // double ptMax = 1.000_GeV +1e-100_GeV;
+  double ptMin = 0.500_GeV;
+  double ptMax = 0.501_GeV;
 
   // double ptMin = 0.350_GeV;
   // double ptMax = 0.350_GeV +1e-100_GeV;
@@ -80,10 +83,9 @@ int main(int argc, char *argv[]){
 
   bool isroc = !outputDir.Contains("noroc");
   bool isframe = !outputDir.Contains("noframe");
-  
-  isroc = 1;
+  isroc = 0;
   isframe = 0;
-
+  
   printf("Running acts: %d eta=%.1f vzMax=%.0f\n", pdgCode, etaMin, vzMax);
 
   inputDir.Append("/");
@@ -119,7 +121,7 @@ int main(int argc, char *argv[]){
   auto rnd = std::make_shared<ActsExamples::RandomNumbers>(ActsExamples::RandomNumbers::Config({42}));
 
   // Particle gun generator config
-  double etaMax = etaMin + 1.e-100;
+  double etaMax = etaMin + 1.e-4;
 
   ActsExamples::ParametricParticleGenerator::Config genCfg;
   genCfg.etaUniform = true;
@@ -127,8 +129,8 @@ int main(int argc, char *argv[]){
   genCfg.thetaMax = 2 * atan(exp(-etaMin));
   genCfg.pMin = ptMin;
   genCfg.pMax = ptMax;
-  // genCfg.phiMin = 0.;
-  // genCfg.phiMax = 1.;
+  // genCfg.phiMin = M_PI/180.*30.;
+  // genCfg.phiMax = M_PI/180.*30.00001;
   genCfg.pTransverse = true;
 
   genCfg.pdg = pdgCode;
@@ -152,7 +154,6 @@ int main(int argc, char *argv[]){
   particleReaderCfg.treeName = "particles";
   particleReaderCfg.filePath = TString(inputDir+"particles.root").Data();
 
-  //auto trackingGeometryPtr = CreateTrackingGeometry(istpc, isframe);
   auto trackingGeometryPtr = CreateTrackingGeometry(isroc, isframe);
   auto trackingGeometry = std::make_shared<Acts::TrackingGeometry>(*trackingGeometryPtr);
 
@@ -394,7 +395,7 @@ int main(int argc, char *argv[]){
   sequencer.addWriter(std::make_shared<ActsExamples::RootSpacepointWriter>(spWriterCfg, logLevel));
 
   sequencer.addWriter(std::make_shared<ActsExamples::RootSeedWriter>(seedWriterCfg, logLevel));
-  // sequencer.addWriter(std::make_shared<ActsExamples::RootTrackStatesWriter>(trackStatesWriterCfg, logLevel));
+  sequencer.addWriter(std::make_shared<ActsExamples::RootTrackStatesWriter>(trackStatesWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackSummaryWriterCfg, logLevel));
   // sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackRefitSummaryWriterCfg, logLevel));
 
