@@ -375,7 +375,8 @@ void SetBranchAddresses(TTree* m_outputTree){
 }
 
 void analyse_trackstates(){
-  TFile* f = new TFile("build/trackstates_ckf.root");
+  // TFile* f = new TFile("../build/trackstates_ckf.root");
+  TFile* f = new TFile("../build/notpc_pi_16_7deg/trackstates.root");
   TTree* t = (TTree*) f->Get("trackstates");
   SetBranchAddresses(t);
 

@@ -24,8 +24,9 @@ double quadratic_sum(double* x, double* par){
    return sqrt(pow(fRes->Eval(x[0]),2) + pow(fMS->Eval(x[0]),2.));
 }
 
-
-void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "roc_pi_19", bool refit = 0){
+void draw_resolution(TString pid = "Pi", TString dir1 = "../acts", TString dir2 = "../acts", TString dir3 = "../acts", bool refit = 0){
+//void draw_resolution(TString pid = "Pi", TString dir1 = "../acts16", TString dir2 = "../acts19", TString dir3 = "../acts16", bool refit = 0){
+//void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString dir2 = "notpc_pi_19", TString dir3 = "roc_pi_19", bool refit = 0){
   dir1.Append("/");
   dir2.Append("/");
   dir3.Append("/");
@@ -35,7 +36,9 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "notpc_pi_16", TString d
   TFile* f3 = new TFile(dir3 + (refit ? "resolution_refit.root" : "resolution.root"));
   TGraph* gRes16 = (TGraph*) f1->Get(Form("gRes%s16",pid.Data()));
   TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
-  TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s19",pid.Data()));
+  TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s16",pid.Data()));
+  // TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
+  // TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s19",pid.Data()));
 
   const int nPtBins = 25;
   double pt[nPtBins]={0.005,0.007,0.01,0.015,0.02,0.03,0.04,0.05,0.07,0.1,0.12,0.15,0.2,0.22, 0.25,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,5}; // GeV

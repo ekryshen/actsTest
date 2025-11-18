@@ -3,10 +3,13 @@
 #include "TH1D.h"
 #include "style.h"
 
+void analyse_resolution(TString dir = "../acts", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
+//void analyse_resolution(TString dir = "../acts", TString pid = "Pi", double etaMean = 1.6, bool refit = 0){
+//void analyse_resolution(TString dir = "../acts19", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
 //void analyse_resolution(TString dir = "notpc_pi_19", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
 //void analyse_resolution(TString dir = "notpc_pi_16", TString pid = "Pi", double etaMean = 1.6, bool refit = 0){
 //void analyse_resolution(TString dir = "roc_pi_16_15deg", TString pid = "Pi", double etaMean = 1.6, bool refit = 0){
-void analyse_resolution(TString dir = "roc_pi_19_15deg", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
+//void analyse_resolution(TString dir = "roc_pi_19_15deg", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
 //void analyse_resolution(TString dir = "roc_pi_16_7deg", TString pid = "Pi", double etaMean = 1.6, bool refit = 0){
 //void analyse_resolution(TString dir = "roc_pi_19_7deg", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
 //void analyse_resolution(TString dir = "notpc_pi_19_7deg", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
@@ -19,8 +22,8 @@ void analyse_resolution(TString dir = "roc_pi_19_15deg", TString pid = "Pi", dou
   gStyle->SetOptFit(101);
 
   TFile* f = new TFile(dir + (refit ? "tracking_efficiency_refit.root" : "tracking_efficiency.root"));
-//  TH2D* hPtResVsPtMC = (TH2D*) f->Get(Form("hPtResVsPt%s%.0f",pid.Data(), etaMean*10));
-  TH2D* hPtResVsPtMC = (TH2D*) f->Get(Form("hPResVsPt%s%.0f",pid.Data(), etaMean*10));
+  TH2D* hPtResVsPtMC = (TH2D*) f->Get(Form("hPtResVsPt%s%.0f",pid.Data(), etaMean*10));
+//  TH2D* hPtResVsPtMC = (TH2D*) f->Get(Form("hPResVsPt%s%.0f",pid.Data(), etaMean*10));
 
   int nbins = hPtResVsPtMC->GetNbinsX();
   
@@ -64,8 +67,8 @@ void analyse_resolution(TString dir = "roc_pi_19_15deg", TString pid = "Pi", dou
     printf("%d %f %f\n",i,vPt[i],vRes[i]);
   }
   TGraph* g = new TGraph(nPtBins,vPt,vRes);
-//  TFile* fg = new TFile(dir + (refit ? "resolution_refit.root" : "resolution.root"),"update");
-  TFile* fg = new TFile(dir + (refit ? "resolution_refit.root" : "mom_resolution.root"),"update");
+  TFile* fg = new TFile(dir + (refit ? "resolution_refit.root" : "resolution.root"),"update");
+//  TFile* fg = new TFile(dir + (refit ? "resolution_refit.root" : "mom_resolution.root"),"update");
   g->Write(Form("gRes%s%.0f",pid.Data(), etaMean*10));
   fg->Close();
 }
