@@ -3,7 +3,8 @@
 #include "TH1D.h"
 #include "style.h"
 
-void analyse_resolution(TString dir = "../acts", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
+void analyse_resolution(TString dir = "../acts", TString pid = "Pi", double etaMean = 1.7, bool refit = 0){
+//void analyse_resolution(TString dir = "../acts", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
 //void analyse_resolution(TString dir = "../acts", TString pid = "Pi", double etaMean = 1.6, bool refit = 0){
 //void analyse_resolution(TString dir = "../acts19", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){
 //void analyse_resolution(TString dir = "notpc_pi_19", TString pid = "Pi", double etaMean = 1.9, bool refit = 0){

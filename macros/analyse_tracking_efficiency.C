@@ -36,10 +36,10 @@ bool isGoodSeed(int64_t layerMask, int minHits = 5){
   return 1;
 }
 
-
-//void analyse_tracking_efficiency(TString dir = "../acts", double etaMean = 1.6, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
+void analyse_tracking_efficiency(TString dir = "../build/test", double etaMean = 1.7, double etaDif = 0.1, bool refit = 0, bool trackable = 1, int nPrimaries = 90){
+//void analyse_tracking_efficiency(TString dir = "../acts", double etaMean = 1.7, double etaDif = 0.1, bool refit = 0, bool trackable = 1, int nPrimaries = 90){
 //void analyse_tracking_efficiency(TString dir = "../acts", double etaMean = 1.9, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
-void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0, bool trackable = 1){
+//void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean = 1.6, double etaDif = 0.1, bool refit = 0, bool trackable = 1){
 //void analyse_tracking_efficiency(TString dir = "../acts_pi_19", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0, bool trackable = 1){
 
 //void analyse_tracking_efficiency(TString dir = "notpc_pi_19", double etaMean = 1.9, double etaDif = 0.1, bool refit = 0){
@@ -103,7 +103,8 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
       mapFirstMeaurementIndex[meas_event_id] = im;
     }
     // if (meas_volume_id!=16) continue;  // with TPC volumes
-    if (meas_volume_id!=6) continue;
+    // if (meas_volume_id!=6) continue;
+    if (meas_volume_id!=1) continue; // acts test
     auto& mapParticleFtdLayerMask = vEventParticleFtdLayerMask[meas_event_id];
     int ip = meas_particles[0][2] - 1;
     if (auto m = mapParticleFtdLayerMask.find(ip); m == mapParticleFtdLayerMask.end()) mapParticleFtdLayerMask[ip] = 0;
@@ -124,6 +125,8 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
 
   TH1D* hSeedPtPi = new TH1D("hSeedPtPi","",100,0.,1.);
   TH1D* hSeedPtPr = new TH1D("hSeedPtPr","",100,0.,1.);
+  TH1D* hSeedPhiPi = new TH1D("hSeedPhiPi","",180,-M_PI,M_PI);
+  TH1D* hSeedPhiPr = new TH1D("hSeedPhiPr","",180,-M_PI,M_PI);
 
   printf("loop over seeds\n");
   int previous_event_id = -1;
@@ -146,15 +149,19 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
       continue;
     }
     int ip = hit_particle_id1 - 1;
+    if (ip < 0 || ip>=nPrimaries) continue;
     int64_t ftdLayerMask = vEventParticleFtdLayerMask[seed_event_id][ip];
     if (trackable && (!isGoodFtd(ftdLayerMask) || !isGoodSeed(ftdLayerMask))) continue;    
     int pdg = part_pdg->at(ip);
     float vz = part_vz->at(ip);
     float pt = part_pt->at(ip);
     float eta = part_eta->at(ip);
+    float phi = part_phi->at(ip);    
     if (abs(eta-etaMean)<etaDif && abs(vz)<1.) {
       if (abs(pdg)== 211) hSeedPtPi->Fill(pt);
       if (abs(pdg)==2212) hSeedPtPr->Fill(pt);
+      if (abs(pdg)== 211) hSeedPhiPi->Fill(phi);
+      if (abs(pdg)==2212) hSeedPhiPr->Fill(phi);
     }
   }
 
@@ -170,6 +177,11 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
   TH1D* hMcPtPr = new TH1D("hMcPtPr","",100,0.,1.);
   TH1D* hRcPtPi = new TH1D("hRcPtPi","",100,0.,1.);
   TH1D* hRcPtPr = new TH1D("hRcPtPr","",100,0.,1.);
+
+  TH1D* hMcPhiPi = new TH1D("hMcPhiPi","",180,-M_PI,M_PI);
+  TH1D* hMcPhiPr = new TH1D("hMcPhiPr","",180,-M_PI,M_PI);
+  TH1D* hRcPhiPi = new TH1D("hRcPhiPi","",180,-M_PI,M_PI);
+  TH1D* hRcPhiPr = new TH1D("hRcPhiPr","",180,-M_PI,M_PI);
 
   TH2D* hPResVsPtPi = new TH2D("hPResVsPtPi","",20,0.,1.,2000,-1.,1.);
   TH2D* hPResVsPtPr = new TH2D("hPResVsPtPr","",20,0.,1.,2000,-1.,1.);
@@ -191,6 +203,7 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
   TH2D* hPullDvsPtPr   = new TH2D("hPullDvsPtPr","",20,0.,1.,200,-10,10);
   TH2D* hPullZvsPtPr   = new TH2D("hPullZvsPtPr","",20,0.,1.,200,-10,10);
   TH1D* hMeasurements  = new TH1D("hMeasurements","",30,0,30.);
+  TH1D* hMajorityHits  = new TH1D("hMajorityHits","",30,0,30.);
 
   TVector3 v;
   TVector3 vMC;
@@ -203,24 +216,33 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
     for (int ip = 0; ip<part_pdg->size(); ip++){
       int64_t ftdLayerMask = mapParticleFtdLayerMask[ip];
       if (trackable && (!isGoodFtd(ftdLayerMask) || !isGoodSeed(ftdLayerMask))) continue;    
+      if (ip < 0 || ip>=nPrimaries) continue;
       int pdg = part_pdg->at(ip);
       float vz = part_vz->at(ip);
       float pt = part_pt->at(ip);
       float eta = part_eta->at(ip);
+      float phi = part_phi->at(ip);    
       if (abs(eta-etaMean)<etaDif && abs(vz)<1.) {
         if (abs(pdg)== 211) hMcPtPi->Fill(pt);
         if (abs(pdg)==2212) hMcPtPr->Fill(pt);
+        if (abs(pdg)== 211) hMcPhiPi->Fill(phi);
+        if (abs(pdg)==2212) hMcPhiPr->Fill(phi);
       }
     } // particle loop
 
     for (int it=0; it<m_majorityParticleId->size(); it++){
       if (!m_hasFittedParams->at(it)) continue;
+      // check measurements and true hits here
+      
+
+
       hChi2all->Fill(m_chi2Sum->at(it)/m_nMeasurements->at(it));
       auto& layers = m_measurementLayer->at(it);
       int64_t trackFtdLayerMask = 0;
       for (int il=0;il<layers.size();il++) trackFtdLayerMask |= (1ull << layers[il]);
       if (trackable && !isGoodFtd(trackFtdLayerMask)) continue;
       hMeasurements->Fill(m_nMeasurements->at(it));
+      hMajorityHits->Fill(m_nMajorityHits->at(it));
       hChi2sel->Fill(m_chi2Sum->at(it)/m_nMeasurements->at(it));
       double qp = m_eQOP_fit->at(it);
       double theta = m_eTHETA_fit->at(it);
@@ -230,7 +252,7 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
       double ptRC = v.Pt();
       auto barcode = ActsFatras::Barcode().withData(m_majorityParticleId->at(it));
       int ip = barcode.particle()-1;
-      if (ip < 0) continue;
+      if (ip < 0 || ip>=nPrimaries) continue;
       int64_t ftdLayerMask = mapParticleFtdLayerMask[ip];
       if (trackable && (!isGoodFtd(ftdLayerMask) || !isGoodSeed(ftdLayerMask))) continue;    
       int pdg = part_pdg->at(ip);
@@ -244,6 +266,7 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
       if (abs(etaMC-etaMean)<etaDif && abs(vz)<1.) {
         if (abs(pdg)== 211) {
           hRcPtPi->Fill(ptMC);
+          hRcPhiPi->Fill(phiMC);
           hPResVsPtPi->Fill(ptMC,(pRC-pMC)/pMC);
           hPtResVsPtPi->Fill(ptMC,(ptRC-ptMC)/ptMC);
           hResQOPvsPtPi->Fill(ptMC,m_eQOP_fit->at(it)-qpMC);
@@ -255,6 +278,7 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
         }
         if (abs(pdg)==2212) {
           hRcPtPr->Fill(ptMC);
+          hRcPhiPr->Fill(phiMC);
           hPResVsPtPr->Fill(ptMC,(pRC-pMC)/pMC);
           hPtResVsPtPr->Fill(ptMC,(ptRC-ptMC)/ptMC);
           hResQOPvsPtPr->Fill(ptMC,m_eQOP_fit->at(it)-qpMC);
@@ -299,13 +323,20 @@ void analyse_tracking_efficiency(TString dir = "../acts_pi_16", double etaMean =
   hChi2sel->Draw("same");
 
   TFile* f = new TFile(TString(dir + (refit ? "tracking_efficiency_refit.root" : "tracking_efficiency.root") ),"update");
+  hMajorityHits->Write(Form("hMajorityHits%.0f",etaMean*10));
   hMeasurements->Write(Form("hMeasurements%.0f",etaMean*10));
   hMcPtPi->Write(Form("hMcPtPi%.0f",etaMean*10));
   hMcPtPr->Write(Form("hMcPtPr%.0f",etaMean*10));
-  hRcPtPi->Write(Form("hEffPtPi%.0f",etaMean*10));
-  hRcPtPr->Write(Form("hEffPtPr%.0f",etaMean*10));
+  hRcPtPi->Write(Form("hRcPtPi%.0f",etaMean*10));
+  hRcPtPr->Write(Form("hRcPtPr%.0f",etaMean*10));
+  hMcPhiPi->Write(Form("hMcPhiPi%.0f",etaMean*10));
+  hMcPhiPr->Write(Form("hMcPhiPr%.0f",etaMean*10));
+  hRcPhiPi->Write(Form("hRcPhiPi%.0f",etaMean*10));
+  hRcPhiPr->Write(Form("hRcPhiPr%.0f",etaMean*10));
   hSeedPtPi->Write(Form("hSeedPtPi%.0f",etaMean*10));
   hSeedPtPr->Write(Form("hSeedPtPr%.0f",etaMean*10));
+  hSeedPhiPi->Write(Form("hSeedPhiPi%.0f",etaMean*10));
+  hSeedPhiPr->Write(Form("hSeedPhiPr%.0f",etaMean*10));
   hPResVsPtPi->Write(Form("hPResVsPtPi%.0f",etaMean*10));
   hPResVsPtPr->Write(Form("hPResVsPtPr%.0f",etaMean*10));
   hPtResVsPtPi->Write(Form("hPtResVsPtPi%.0f",etaMean*10));

@@ -34,9 +34,13 @@ void draw_resolution(TString pid = "Pi", TString dir1 = "../acts", TString dir2 
   TFile* f1 = new TFile(dir1 + (refit ? "resolution_refit.root" : "resolution.root"));
   TFile* f2 = new TFile(dir2 + (refit ? "resolution_refit.root" : "resolution.root"));
   TFile* f3 = new TFile(dir3 + (refit ? "resolution_refit.root" : "resolution.root"));
-  TGraph* gRes16 = (TGraph*) f1->Get(Form("gRes%s16",pid.Data()));
-  TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
-  TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s16",pid.Data()));
+  TGraph* gRes16 = (TGraph*) f1->Get(Form("gRes%s17",pid.Data()));
+  TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s17",pid.Data()));
+  TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s17",pid.Data()));
+
+  // TGraph* gRes16 = (TGraph*) f1->Get(Form("gRes%s16",pid.Data()));
+  // TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
+  // TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s16",pid.Data()));
   // TGraph* gRes19 = (TGraph*) f2->Get(Form("gRes%s19",pid.Data()));
   // TGraph* gRes22 = (TGraph*) f3->Get(Form("gRes%s19",pid.Data()));
 

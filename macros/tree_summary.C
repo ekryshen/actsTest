@@ -8,9 +8,6 @@
 #include "vector"
 #include "TEllipse.h"
 #include "TGraphErrors.h"
-#include "tree_summary.C"
-
-#include "style.h"
 
 using namespace std;
 
@@ -172,90 +169,4 @@ void SetBranchAddresses(TTree* m_inputChain){
   m_inputChain->SetBranchAddress("pull_eTHETA_fit", &m_pull_eTHETA_fit);
   m_inputChain->SetBranchAddress("pull_eQOP_fit", &m_pull_eQOP_fit);
   m_inputChain->SetBranchAddress("pull_eT_fit", &m_pull_eT_fit);
-}
-
-void analyse_summary(int eta = 16){
-//  TFile* f = new TFile(Form("build/tracksummary.%d.root",eta));
-  TFile* f = new TFile("../build/test/tracksummary.root");
-  TTree* t = (TTree*) f->Get("tracksummary");
-  SetBranchAddresses(t);
-  int nEvents = t->GetEntries();
-
-  TH1D* h_eQOP_fit = new TH1D("h_eQOP_fit","",200,0,2);
-  TH1D* h_eLOC0_fit = new TH1D("h_eLOC0_fit","",200,-90,90);
-  TH1D* h_eLOC1_fit = new TH1D("h_eLOC1_fit","",200,-90,90);
-  TH1D* h_pull_eQOP_fit = new TH1D("h_pull_eQOP_fit","",200,-10,10);
-  TH1D* h_pull_eLOC0_fit = new TH1D("h_pull_eLOC0_fit","",200,-10,10);
-  TH1D* h_pull_eLOC1_fit = new TH1D("h_pull_eLOC1_fit","",200,-10,10);
-
-  TH2D* hPtResVsPtMC = new TH2D("hPtResVsPtMC","",20,0.,1.,2000,-1.,1.);
-  TH1D* hPtMC = new TH1D("hPtMC","",120,0,1.2);
-  TVector3 v;
-  for (int ev=0; ev<nEvents; ev++){
-    t->GetEntry(ev);
-    if (ev%1000==0) printf("%d\n",ev);
-    for (int tr=0; tr<m_majorityParticleId->size(); tr++){
-      //printf("%f\n",m_eQOP_fit->at(tr));
-      h_eQOP_fit->Fill(m_eQOP_fit->at(tr));
-      h_eLOC0_fit->Fill(m_eLOC0_fit->at(tr));
-      h_eLOC1_fit->Fill(m_eLOC1_fit->at(tr));
-      h_pull_eQOP_fit->Fill(m_pull_eQOP_fit->at(tr));
-      h_pull_eLOC0_fit->Fill(m_pull_eLOC0_fit->at(tr));
-      h_pull_eLOC1_fit->Fill(m_pull_eLOC1_fit->at(tr));
-      double qp = m_eQOP_fit->at(tr);
-      double theta = m_eTHETA_fit->at(tr);
-      double phi = m_ePHI_fit->at(tr);
-      v.SetMagThetaPhi(1./qp, theta, phi);
-      double ptMC = m_t_pT->at(tr);
-      double ptRC = v.Pt();
-      hPtResVsPtMC->Fill(ptMC,(ptRC-ptMC)/ptMC);
-      hPtMC->Fill(ptMC);
-    }
-  }
-
-  new TCanvas;
-  hPtMC->Draw();
-
-  new TCanvas;
-  hPtResVsPtMC->Draw();
-  
-  TFile* fRes = new TFile(Form("res%d.root",eta),"recreate");
-  hPtResVsPtMC->Write();
-  fRes->Close();
-  return;
-
-  TCanvas* cPulls = new TCanvas("cPulls","",1900,800);
-  cPulls->Divide(3,2,0.001,0.001);
-  cPulls->cd(1);
-  SetPad(gPad);
-  SetHisto(h_eLOC0_fit,";d (mm)");
-  h_eLOC0_fit->Draw();
-  
-  cPulls->cd(2);
-  SetPad(gPad);
-  SetHisto(h_eLOC1_fit,";z (mm)");
-  h_eLOC1_fit->Draw();
-
-  cPulls->cd(3);
-  SetPad(gPad);
-  SetHisto(h_eQOP_fit,";q/p (1/GeV)");
-  h_eQOP_fit->Draw();
-  
-  cPulls->cd(4);
-  SetPad(gPad);
-  SetHisto(h_pull_eLOC0_fit,";pull d");
-  h_pull_eLOC0_fit->Draw();
-
-  cPulls->cd(5);
-  SetPad(gPad);
-  SetHisto(h_pull_eLOC1_fit,";pull z");
-  h_pull_eLOC1_fit->Draw();
-
-  cPulls->cd(6);
-  SetPad(gPad);
-  SetHisto(h_pull_eQOP_fit,";pull q/p");
-  h_pull_eQOP_fit->Draw();
-  h_pull_eQOP_fit->Fit("gaus","","",-2,2);
-
-  cPulls->Print("pulls.png");
 }
