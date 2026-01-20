@@ -28,6 +28,7 @@
 #include "ActsExamples/Io/Root/RootTrackSummaryWriter.hpp"
 #include "ActsExamples/TruthTracking/TrackTruthMatcher.hpp"
 #include "ActsExamples/TruthTracking/TruthSeedingAlgorithm.hpp"
+#include "ActsExamples/AmbiguityResolution/GreedyAmbiguityResolutionAlgorithm.hpp"
 
 #include "MyTrackFindingAlgorithm.hpp"
 #include "MyTrackWriter.hpp"
@@ -110,6 +111,7 @@ int main(int argc, char *argv[]){
   auto events = "hepmc3_event";
   auto particles = "particles";
   auto vertices = "vertices";
+  auto ckf_tracks = "ckf_tracks";
   auto tracks = "tracks";
   auto simhits = "simhits";
   auto measurements = "measurements";
@@ -304,7 +306,7 @@ int main(int argc, char *argv[]){
   //trackFindingCfg.reverseSearch = true;
   trackFindingCfg.inputMeasurements = measurements;
   trackFindingCfg.inputInitialTrackParameters = paramsEstimationCfg.outputTrackParameters;
-  trackFindingCfg.outputTracks = tracks;
+  trackFindingCfg.outputTracks = ckf_tracks;
   trackFindingCfg.trackingGeometry = trackingGeometry;
   trackFindingCfg.magneticField = fatrasCfg.magneticField;
   trackFindingCfg.measurementSelectorCfg = Acts::GeometryHierarchyMap(measSel);
@@ -315,9 +317,17 @@ int main(int argc, char *argv[]){
   myTrackFindingCfg.inputMeasurementParticlesMap = measurement_particles_map;
   myTrackFindingCfg.inputMeasurements = measurements;
   myTrackFindingCfg.inputInitialTrackParameters = paramsEstimationCfg.outputTrackParameters;
-  myTrackFindingCfg.outputTracks = tracks;
+  myTrackFindingCfg.outputTracks = ckf_tracks;
   myTrackFindingCfg.trackingGeometry = trackingGeometry;
   myTrackFindingCfg.magneticField = fatrasCfg.magneticField;
+
+  // ambiguity resolution
+  ActsExamples::GreedyAmbiguityResolutionAlgorithm::Config ambigResCfg;
+  ambigResCfg.inputTracks = ckf_tracks;
+  ambigResCfg.outputTracks = tracks;
+  ambigResCfg.nMeasurementsMin = 5;
+  ambigResCfg.maximumSharedHits = 2;
+  ambigResCfg.maximumIterations = 1000;
 
   // Track truth matcher
   ActsExamples::TrackTruthMatcher::Config trackTruthMatcherCfg;
@@ -420,6 +430,7 @@ int main(int argc, char *argv[]){
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackParamsEstimationAlgorithm>(paramsEstimationCfg, logLevel));
   //sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackFindingAlgorithm>(trackFindingCfg, logLevel));
   sequencer.addAlgorithm(std::make_shared<MyTrackFindingAlgorithm>(myTrackFindingCfg, logLevel));
+  sequencer.addAlgorithm(std::make_shared<ActsExamples::GreedyAmbiguityResolutionAlgorithm>(ambigResCfg, logLevel));  
   // //   // sequencer.addAlgorithm(std::make_shared<ActsExamples::MyRefittingAlgorithm>(refitCfg, logLevelMyRefit));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackTruthMatcher>(trackTruthMatcherCfg, logLevelMatcher));
 

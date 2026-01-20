@@ -69,6 +69,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         ActsExamplesTrackFitting
         ActsExamplesTruthTracking
         ActsExamplesIoHepMC3
+        ActsExamplesAmbiguityResolution
         tbb
         Core
         Tree
