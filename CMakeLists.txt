@@ -41,10 +41,19 @@ link_directories(
         )
 
 # main exec
-add_executable(${PROJECT_NAME} main.cpp tracker.h tracker_config.h MySpacePointMaker.cpp)
+add_executable(${PROJECT_NAME} 
+        main.cpp 
+        tracker.h 
+        tracker_config.h 
+        MySpacePointMaker.cpp 
+        MyDigitizationAlgorithm.cpp
+        MyTrackFindingAlgorithm.cpp
+        MyTrackWriter.cpp
+        )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         ActsCore
+        ActsFatras
         ActsPluginGeant4
         ActsExamplesFramework
         ActsExamplesGenerators
@@ -63,6 +72,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         tbb
         Core
         Tree
+        RIO
         ${Geant4_LIBRARIES}
 )
 

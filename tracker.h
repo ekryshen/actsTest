@@ -8,10 +8,12 @@
 #include "Acts/Material/HomogeneousVolumeMaterial.hpp"
 #include "Acts/Surfaces/Surface.hpp"
 #include "Acts/Surfaces/DiscSurface.hpp"
+#include "Acts/Surfaces/StrawSurface.hpp"
 #include "Acts/Surfaces/SurfaceArray.hpp"
 #include "Acts/Surfaces/RadialBounds.hpp"
 #include "Acts/Surfaces/PlanarBounds.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
+#include "Acts/Surfaces/LineBounds.hpp"
 #include "Acts/Geometry/TrackingVolume.hpp"
 #include "Acts/Geometry/DiscLayer.hpp"
 #include "Acts/Geometry/PlaneLayer.hpp"
@@ -172,7 +174,8 @@ Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 0, bool addFlange =
     double rc = 0.5 * (rmax + rmin);   
     double hl = 0.5 * (rmax - rmin) / cos(angleRot);
     double hw = layerStripWidth/2. * cm;
-    const auto sBounds = std::make_shared<const Acts::RectangleBounds>(hw, hl);
+    //const auto sBounds = std::make_shared<const Acts::RectangleBounds>(hw, hl);
+    const auto sBounds = std::make_shared<const Acts::LineBounds>(hw, hl); // for strawSurface
     int nTubes = numberOfTubes[i];
     std::vector<std::shared_ptr<const Acts::Surface>> vSurfaces;
     for (int iTube = 0; iTube < nTubes; iTube++) {
@@ -182,7 +185,9 @@ Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 0, bool addFlange =
       auto stransform = Acts::Transform3::Identity();
       stransform.translate(Acts::Vector3(rc*cosp, rc*sinp, positions[i] * cm));
       stransform.rotate(Eigen::AngleAxisd(M_PI/2 + phi + angleRot, Acts::Vector3(0, 0, 1)));
-      auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(stransform, sBounds);
+      stransform.rotate(Eigen::AngleAxisd(M_PI/2, Acts::Vector3(1, 0, 0))); // for strawSurface
+      //auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(stransform, sBounds);
+      auto surface = Acts::Surface::makeShared<Acts::StrawSurface>(stransform, sBounds); // for strawSurface
       surface->assignSurfaceMaterial(surfaceMaterial);
       auto detElement = std::make_shared<MyDetectorElement>(std::make_shared<const Acts::Transform3>(stransform), surface, thickness);
       surface->assignDetectorElement(*detElement);
@@ -205,7 +210,8 @@ Acts::TrackingGeometry* CreateTrackingGeometry(bool addROC = 0, bool addFlange =
     gridLookup->fill(gctx, surfacesRaw);
     auto surArray = std::unique_ptr<Acts::SurfaceArray>(new Acts::SurfaceArray(std::move(gridLookup),vSurfaces, trafo));
 
-    auto layer = Acts::DiscLayer::create(trafo, rBounds, std::move(surArray), thickness, nullptr, Acts::active);
+//    auto layer = Acts::DiscLayer::create(trafo, rBounds, std::move(surArray), thickness, nullptr, Acts::active);
+    auto layer = Acts::DiscLayer::create(trafo, rBounds, std::move(surArray), 10.0, nullptr, Acts::active);
 
     for (auto& surface : vSurfaces) {
       auto mutableSurface = const_cast<Acts::Surface*>(surface.get());

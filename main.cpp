@@ -29,6 +29,8 @@
 #include "ActsExamples/TruthTracking/TrackTruthMatcher.hpp"
 #include "ActsExamples/TruthTracking/TruthSeedingAlgorithm.hpp"
 
+#include "MyTrackFindingAlgorithm.hpp"
+#include "MyTrackWriter.hpp"
 #include "tracker_config.h"
 #include "tracker.h"
 #include "TString.h"
@@ -36,6 +38,7 @@
 
 #include "MySpacePointMaker.hpp"
 #include "MyRefittingAlgorithm.hpp"
+#include "MyDigitizationAlgorithm.hpp"
 
 using Acts::UnitConstants::cm;
 using namespace Acts::UnitConstants;
@@ -46,7 +49,7 @@ int main(int argc, char *argv[]){
   TString inputDir = "none";
   TString outputDir = "test";
 //  TString outputDir = "roc_pi_16_7deg";
-  int nEvents = 1000;
+  int nEvents = 100;
   //Acts::PdgParticle pdgCode = Acts::eProton;
   Acts::PdgParticle pdgCode = Acts::ePionPlus;
   double etaMin = 1.6;
@@ -125,19 +128,27 @@ int main(int argc, char *argv[]){
 
   ActsExamples::ParametricParticleGenerator::Config genCfg;
   genCfg.etaUniform = true;
-  genCfg.thetaMin = 2 * atan(exp(-etaMax));
-  genCfg.thetaMax = 2 * atan(exp(-etaMin));
-  genCfg.pMin = ptMin;
-  genCfg.pMax = ptMax;
+  genCfg.pTransverse = true;
+  genCfg.pdg = pdgCode;
+  // genCfg.thetaMin = 2 * atan(exp(-etaMax));
+  // genCfg.thetaMax = 2 * atan(exp(-etaMin));
+  // genCfg.pMin = ptMin;
+  // genCfg.pMax = ptMax;
   // genCfg.phiMin = M_PI/180.*30.;
   // genCfg.phiMax = M_PI/180.*30.00001;
-  genCfg.pTransverse = true;
 
-  genCfg.pdg = pdgCode;
+  // central UrQMD-like occupancy
+  genCfg.thetaMin = 2 * atan(exp(-1.95));
+  genCfg.thetaMax = 2 * atan(exp(-1.55));
+  genCfg.pMin = 0.3;
+  genCfg.pMax = 1.0;
+  genCfg.randomizeCharge = true;
+  genCfg.numParticles = 90;
   ActsExamples::EventGenerator::Generator gen{
       std::make_shared<ActsExamples::FixedMultiplicityGenerator>(1),
       std::make_shared<ActsExamples::FixedPrimaryVertexPositionGenerator>(),
       std::make_shared<ActsExamples::ParametricParticleGenerator>(genCfg)};
+
   ActsExamples::EventGenerator::Config evgenCfg;
   evgenCfg.outputEvent = events;
   evgenCfg.generators = {gen};
@@ -190,7 +201,7 @@ int main(int argc, char *argv[]){
   // std::vector<std::pair<Acts::GeometryIdentifier, ActsExamples::DigiComponentsConfig>> elements = { {Acts::GeometryIdentifier{}, digiConfig} };
 
   // Digitization config
-  ActsExamples::DigitizationAlgorithm::Config digiCfg;
+  ActsExamples::MyDigitizationAlgorithm::Config digiCfg;
   digiCfg.inputSimHits = simhits;
   digiCfg.randomNumbers = rnd;
   digiCfg.outputMeasurements = measurements;
@@ -205,9 +216,9 @@ int main(int argc, char *argv[]){
   spCfg.trackingGeometry = trackingGeometry;
   spCfg.outputSpacePoints = spacepoints;
   spCfg.geometrySelection = {
-    Acts::GeometryIdentifier().withVolume(1).withLayer( 3+shift),
-    Acts::GeometryIdentifier().withVolume(1).withLayer(17+shift),
-    Acts::GeometryIdentifier().withVolume(1).withLayer(31+shift)
+    Acts::GeometryIdentifier().withVolume(1).withLayer( 0+shift), // 3 + shift
+    Acts::GeometryIdentifier().withVolume(1).withLayer(18+shift), // 17 + shift
+    Acts::GeometryIdentifier().withVolume(1).withLayer(36+shift)  // 31 + shift
   };
 
   // Create space points
@@ -228,7 +239,8 @@ int main(int argc, char *argv[]){
   // truthSeedingCfg.deltaRMax = 100._mm;
 
   // Seeding
-  int iB = 3, iM = 17, iF = 31;
+  int iB = 0, iM = 18, iF = 36;
+  //int iB = 3, iM = 17, iF = 31;
   //int iB = 4, iM = 6, iF = 8;
   //int iB = 0, iM = 2, iF = 4;
   ActsExamples::SeedingAlgorithm::Config seedingCfg;
@@ -268,13 +280,22 @@ int main(int argc, char *argv[]){
   paramsEstimationCfg.outputTrackParameters = estimatedparameters;
   paramsEstimationCfg.trackingGeometry = trackingGeometry;
   paramsEstimationCfg.magneticField = fatrasCfg.magneticField;
+  // paramsEstimationCfg.initialSigmas = {
+  //       0.01 * Acts::UnitConstants::mm,
+  //       0.01 * Acts::UnitConstants::mm,
+  //       0.01 * Acts::UnitConstants::degree,
+  //       0.01 * Acts::UnitConstants::degree,
+  //       0.01 * Acts::UnitConstants::e / Acts::UnitConstants::GeV,
+  //       1 * Acts::UnitConstants::ns};
+  // paramsEstimationCfg.initialSigmaQoverPt = 0; // 0.1 * Acts::UnitConstants::e / Acts::UnitConstants::GeV;
+  // paramsEstimationCfg.initialSigmaPtRel = 0; //0.1;
 
   // Measurement selector
   std::vector<std::pair<Acts::GeometryIdentifier, Acts::MeasurementSelectorCuts>> measSel;
 
   for (int l = 0; l < positions.size(); ++l) {
-    double chi2 = layerType[l]==2 ? -1 : std::numeric_limits<double>::max();
-    measSel.emplace_back(Acts::GeometryIdentifier().withVolume(1).withLayer(l+shift).withSensitive(0), Acts::MeasurementSelectorCuts({}, {chi2}, {1u}));
+    double chi2 = layerType[l]==2 ? -1 : 10; //std::numeric_limits<double>::max();
+    measSel.emplace_back(Acts::GeometryIdentifier().withVolume(1).withLayer(l+shift).withSensitive(0), Acts::MeasurementSelectorCuts({}, {chi2}, {2u}));
   }
   //trackFindingCfg.measurementSelectorCfg = {{Acts::GeometryIdentifier(), {{}, {std::numeric_limits<double>::max()}, {1u}}}}; // chi2cut, numberOfMeasurementsPerSurface
 
@@ -288,7 +309,15 @@ int main(int argc, char *argv[]){
   trackFindingCfg.magneticField = fatrasCfg.magneticField;
   trackFindingCfg.measurementSelectorCfg = Acts::GeometryHierarchyMap(measSel);
   trackFindingCfg.findTracks = ActsExamples::TrackFindingAlgorithm::makeTrackFinderFunction(
-      trackingGeometry, fatrasCfg.magneticField, *Acts::getDefaultLogger("TrackFinder", logLevelFinder));
+      trackingGeometry, fatrasCfg.magneticField, *Acts::getDefaultLogger("TrackFinder", logLevel));
+
+  MyTrackFindingAlgorithm::Config myTrackFindingCfg;
+  myTrackFindingCfg.inputMeasurementParticlesMap = measurement_particles_map;
+  myTrackFindingCfg.inputMeasurements = measurements;
+  myTrackFindingCfg.inputInitialTrackParameters = paramsEstimationCfg.outputTrackParameters;
+  myTrackFindingCfg.outputTracks = tracks;
+  myTrackFindingCfg.trackingGeometry = trackingGeometry;
+  myTrackFindingCfg.magneticField = fatrasCfg.magneticField;
 
   // Track truth matcher
   ActsExamples::TrackTruthMatcher::Config trackTruthMatcherCfg;
@@ -297,6 +326,8 @@ int main(int argc, char *argv[]){
   trackTruthMatcherCfg.inputMeasurementParticlesMap = measurement_particles_map;
   trackTruthMatcherCfg.outputTrackParticleMatching = track_particle_matching;
   trackTruthMatcherCfg.outputParticleTrackMatching = particle_track_matching;
+  trackTruthMatcherCfg.doubleMatching = false;
+  trackTruthMatcherCfg.matchingRatio = 0.8;
 
   // Particle writer config
   ActsExamples::RootParticleWriter::Config particleWriterCfg;
@@ -316,7 +347,7 @@ int main(int argc, char *argv[]){
   ActsExamples::RootMeasurementWriter::Config measWriterCfg;
   measWriterCfg.inputMeasurements = measurements;
   measWriterCfg.inputSimHits = simhits;
-  measWriterCfg.inputMeasurementSimHitsMap = digiCfg.outputMeasurementSimHitsMap;
+  measWriterCfg.inputMeasurementSimHitsMap = measurement_simhits_map;
   measWriterCfg.surfaceByIdentifier = trackingGeometry->geoIdSurfaceMap();
   measWriterCfg.filePath = TString(outputDir+"measurements.root").Data();
 
@@ -336,7 +367,7 @@ int main(int argc, char *argv[]){
   trackStatesWriterCfg.inputParticles = particles;
   trackStatesWriterCfg.inputSimHits = simhits;
   trackStatesWriterCfg.inputTrackParticleMatching = track_particle_matching;
-  trackStatesWriterCfg.inputMeasurementSimHitsMap = digiCfg.outputMeasurementSimHitsMap;
+  trackStatesWriterCfg.inputMeasurementSimHitsMap = measurement_simhits_map;
   trackStatesWriterCfg.filePath = TString(outputDir+"trackstates.root").Data();
 
   ActsExamples::RootTrackSummaryWriter::Config trackSummaryWriterCfg;
@@ -344,6 +375,10 @@ int main(int argc, char *argv[]){
   trackSummaryWriterCfg.inputParticles = particles;
   trackSummaryWriterCfg.inputTrackParticleMatching = track_particle_matching;
   trackSummaryWriterCfg.filePath = TString(outputDir+"tracksummary.root").Data();
+
+  MyTrackWriter::Config trackWriterCfg;
+  trackWriterCfg.inputTracks = tracks;
+  trackWriterCfg.filePath = TString(outputDir+"tracks.root").Data();
 
   // Refitting algorithm config
   ActsExamples::MyRefittingAlgorithm::Config refitCfg;
@@ -359,7 +394,6 @@ int main(int argc, char *argv[]){
   trackRefitSummaryWriterCfg.inputTrackParticleMatching = trackTruthMatcherCfg.outputTrackParticleMatching;
   trackRefitSummaryWriterCfg.filePath = TString(outputDir+"trackrefit.root").Data();
 
-
   // Sequencer config
   ActsExamples::Sequencer::Config sequencerCfg;
   sequencerCfg.numThreads = 1;
@@ -372,22 +406,22 @@ int main(int argc, char *argv[]){
   if (inputDir.Contains("none")){ // particle gun + fatras simulation
     sequencer.addReader(std::make_shared<ActsExamples::EventGenerator>(evgenCfg, logLevel));
     sequencer.addAlgorithm(std::make_shared<ActsExamples::HepMC3InputConverter>(hepMC3ConverterCfg, logLevel));
-    sequencer.addElement(std::make_shared<ActsExamples::FatrasSimulation>(fatrasCfg, logLevelFatras));
+    sequencer.addElement(std::make_shared<ActsExamples::FatrasSimulation>(fatrasCfg, logLevel));
   } else { // read particles and hits from input file
     sequencer.addReader(std::make_shared<ActsExamples::RootParticleReader>(particleReaderCfg, logLevel));
     sequencer.addReader(std::make_shared<ActsExamples::RootSimHitReader>(simhitReaderCfg, logLevel));
   }
 
-  sequencer.addAlgorithm(std::make_shared<ActsExamples::DigitizationAlgorithm>(digiCfg, logLevelDigi));
+  sequencer.addAlgorithm(std::make_shared<ActsExamples::MyDigitizationAlgorithm>(digiCfg, logLevel));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::SpacePointMaker>(spCfg, logLevel));
-//   sequencer.addAlgorithm(std::make_shared<ActsExamples::MySpacePointMaker>(spCfg, logLevelV));
+// //   sequencer.addAlgorithm(std::make_shared<ActsExamples::MySpacePointMaker>(spCfg, logLevelV));
 
   sequencer.addAlgorithm(std::make_shared<ActsExamples::SeedingAlgorithm>(seedingCfg, logLevelSeed));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackParamsEstimationAlgorithm>(paramsEstimationCfg, logLevel));
-  sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackFindingAlgorithm>(trackFindingCfg, logLevelFinder));
-//   // sequencer.addAlgorithm(std::make_shared<ActsExamples::MyRefittingAlgorithm>(refitCfg, logLevelMyRefit));
+  //sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackFindingAlgorithm>(trackFindingCfg, logLevel));
+  sequencer.addAlgorithm(std::make_shared<MyTrackFindingAlgorithm>(myTrackFindingCfg, logLevel));
+  // //   // sequencer.addAlgorithm(std::make_shared<ActsExamples::MyRefittingAlgorithm>(refitCfg, logLevelMyRefit));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackTruthMatcher>(trackTruthMatcherCfg, logLevelMatcher));
-
 
   sequencer.addWriter(std::make_shared<ActsExamples::RootParticleWriter>(particleWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootSimHitWriter>(simhitWriterCfg, logLevel));
@@ -397,6 +431,7 @@ int main(int argc, char *argv[]){
   sequencer.addWriter(std::make_shared<ActsExamples::RootSeedWriter>(seedWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootTrackStatesWriter>(trackStatesWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackSummaryWriterCfg, logLevel));
+  sequencer.addWriter(std::make_shared<MyTrackWriter>(trackWriterCfg, logLevel));
   // sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackRefitSummaryWriterCfg, logLevel));
 
   sequencer.run();
