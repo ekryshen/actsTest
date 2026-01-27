@@ -1,6 +1,6 @@
 #include "TMath.h"
 
-const int n = 2;
+const int n = 3;
 double a[n];
 double b[n];
 double c[n];
@@ -30,7 +30,7 @@ void analytical_space_point_maker(){
   double yTrue[n];
   double xmeas[n];
   double ymeas[n];
-  double sigma = 0.01;
+  double sigma = 0.1;
   for (int i=0;i<n;i++){
     d[i] = gRandom->Gaus(0,sigma);
     phi[i] = phiDeg[i]*TMath::DegToRad();
