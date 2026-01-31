@@ -57,8 +57,6 @@ void analytic(double &t, double &k, double &dt, double &dk, double& A, double& B
   double num = 0;
   double den = 0;
   double abk[n] = {0};
-  double vdt[n] = {0};
-  
   double sigT2[n] = {0};
   double sigC2[n] = {0};
   double covCT[n] = {0};
@@ -97,7 +95,7 @@ void analytic(double &t, double &k, double &dt, double &dk, double& A, double& B
 }
 
 void analytical_space_point_maker(){
-  double alphaTrueDeg = 8;
+  double alphaTrueDeg = 20;
   double thetaTrue = 30*TMath::DegToRad();
   double alphaTrue = alphaTrueDeg*TMath::DegToRad();
   double tTrue = tan(thetaTrue);
@@ -165,37 +163,17 @@ void analytical_space_point_maker(){
   A0*=1e-11;
   B0*=1e-11;
   double c0true=c[0];
-  double cTrue[n];
-  cTrue[0] = c[0];
-  cTrue[1] = c[1];
-  cTrue[2] = c[2];    
-  // double numTrue[n] = {0};
-  // double denTrue = 0;
-  // double tttTrue[n] = {0};
-  // for (int i=0;i<n;i++){
-  //   double abkTrue = a[i]+b[i]*k;
-  //   numTrue[i] = abkTrue;
-  //   denTrue+=abkTrue*abkTrue;
-  // }
-  // for (int i=0;i<n;i++){
-  //   tttTrue[i] = -sqrt(1+k*k)*numTrue[i]/denTrue;
-  // }
-
 
   // error propagation test
-  TH1D* hT = new TH1D("hT","",150,0.57,0.585);
-  TH1D* hK = new TH1D("hK","",200,kTrue-0.0005,kTrue+0.0005);
-  TH1D* hAtanK = new TH1D("hAtanK","",200,alphaTrueDeg-0.02,alphaTrueDeg+0.02);
+  TH1D* hT = new TH1D("hT","",100,tTrue-5*dt,tTrue+5*dt);
+  TH1D* hK = new TH1D("hK","",100,kTrue-5*dk,kTrue+5*dk);
+  TH1D* hAtanK = new TH1D("hAtanK","",100,alphaTrueDeg-0.02,alphaTrueDeg+0.02);
   TH1D* hPullK = new TH1D("hPullK","",100,-5,5);
   TH1D* hPullT = new TH1D("hPullT","",100,-5,5);
-  TH2D* hTK = new TH2D("kTK",";T;K;",150,0.57,0.585,150,0.2485,0.25);
+  TH2D* hKT = new TH2D("kKT",";k;t;",100,kTrue-5*dk,kTrue+5*dk,100,tTrue-5*dt,tTrue+5*dt);
   TH2D* hAB = new TH2D("hAB",";A;B;",100,A0-0.02,A0+0.02,100,B0-0.02,B0+0.02);
-  TH2D* hCK = new TH2D("hCK",";C;K;",100,1-1e-2,1+1e-2, 200,1-1e-2,1+1e-2);
-  TH1D* hTTT0 = new TH1D("hTTT0","",200,0.00202,0.00205);
-  TH1D* hPullTTT0 = new TH1D("hPullTTT0","",100,-5,5);
-  TH2D* hPullC0_vs_TTT0 = new TH2D("hPullC0_vs_TTT0","",100,-5,5,100,-5,5);
-  TH2D* hPullC1_vs_TTT1 = new TH2D("hPullC1_vs_TTT1","",100,-5,5,100,-5,5);
-  TH2D* hPullC2_vs_TTT2 = new TH2D("hPullC2_vs_TTT2","",100,-5,5,100,-5,5);
+  TH2D* hCK = new TH2D("hCK",";C;K;",100,1-1e-2,1+1e-2, 100,1-1e-2,1+1e-2);
+  TH2D* hPullKT = new TH2D("kPullKT",";pull k;pull t;",100,-5,5,100,-5,5);
 
   for (int ev=0;ev<100000;ev++){
     //if (ev%100==0) printf("%d\n",ev);
@@ -208,53 +186,28 @@ void analytical_space_point_maker(){
     analytic(t,k,dt,dk,A,B,sigA2,sigB2,covAB);
     hT->Fill(t);
     hK->Fill(k);
-    hTK->Fill(t,k);
-    hPullK->Fill((k-kTrue)/dk);
+    hKT->Fill(k,t);
+    double pullK = (k - kTrue)/dk;
+    double pullT = (t - tTrue)/dt;
+    hPullK->Fill(pullK);
     hAtanK->Fill(atan(k)*TMath::RadToDeg());
     hAB->Fill(A*1.e-11,B*1.e-11);
     hCK->Fill(c[0]/c0true,k/kTrue);
-
-    // double num[n] = {0};
-    // double den = 0;
-    // double ttt[n] = {0};
-    // double dttt[n] = {0};
-    // double p1 = 0;
-    // double p2 = 0;
-    // for (int i=0;i<n;i++){
-    //   double abk = a[i]+b[i]*k;
-    //   num[i] = abk;
-    //   den+=abk*abk;
-    //   p1+=2*a[i]*b[i];
-    //   p2+=  b[i]*b[i];
-    // }
-    // for (int i=0;i<n;i++){
-    //   ttt[i] = -sqrt(1+k*k)*num[i]/den;
-    //   dttt[i] = ttt[i]*(k/(1+k*k) + b[i]/num[i]-(p1+2*p2*k)/den);
-    // }
-
-    // hTTT0->Fill(ttt[0]);
-    // hPullTTT0->Fill((ttt[0]-tttTrue[0])/(dttt[0]*dk));    
-    // printf("%f %e\n",ttt[0], dttt[0]*dk);
-
-    // double pullTTT0 = (ttt[0]-tttTrue[0])/(dttt[0]*dk);
-    // double pullTTT1 = (ttt[1]-tttTrue[1])/(dttt[1]*dk);
-    // double pullTTT2 = (ttt[2]-tttTrue[2])/(dttt[2]*dk);
-    // double pullC0 = (c[0]-cTrue[0])/sigma;
-    // double pullC1 = (c[1]-cTrue[1])/sigma;
-    // double pullC2 = (c[2]-cTrue[2])/sigma;    
-    // hPullC0_vs_TTT0->Fill(pullC0,pullTTT0);
-    // hPullC1_vs_TTT1->Fill(pullC1,pullTTT1);
-    // hPullC2_vs_TTT2->Fill(pullC2,pullTTT2);
-    double pullT = (t - tTrue)/dt;
     hPullT->Fill(pullT);
+    hPullKT->Fill(pullK,pullT);
   }
   new TCanvas;
-  hT->Draw();
+  hK->Draw();
+  hK->Fit("gaus");
   new TCanvas;
-  hTK->Draw();
+  hT->Draw();
+  hT->Fit("gaus");
   new TCanvas;
   hPullK->Draw();
   hPullK->Fit("gaus");
+  new TCanvas;
+  hPullT->Draw();
+  hPullT->Fit("gaus");
   new TCanvas;
   hAtanK->Draw();
   hAtanK->Fit("gaus");
@@ -263,18 +216,7 @@ void analytical_space_point_maker(){
   new TCanvas;
   hCK->Draw();
   new TCanvas;
-  hTTT0->Draw();
-  hTTT0->Fit("gaus");
+  hKT->Draw();
   new TCanvas;
-  hPullTTT0->Draw();
-  hPullTTT0->Fit("gaus");
-  new TCanvas;
-  hPullC0_vs_TTT0->Draw();
-  new TCanvas;
-  hPullC1_vs_TTT1->Draw();
-  new TCanvas;
-  hPullC2_vs_TTT2->Draw();
-  new TCanvas;
-  hPullT->Draw();
-  hPullT->Fit("gaus");
+  hPullKT->Draw();
 }
