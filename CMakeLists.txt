@@ -43,11 +43,11 @@ link_directories(
 # main exec
 add_executable(${PROJECT_NAME} 
         main.cpp 
-        tracker.h 
-        tracker_config.h 
+#        tracker.h 
+#        tracker_config.h 
         MySpacePointMaker.cpp 
         MyDigitizationAlgorithm.cpp
-        MyTrackFindingAlgorithm.cpp
+#        MyTrackFindingAlgorithm.cpp
         MyTrackWriter.cpp
         )
 
@@ -72,6 +72,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         ActsExamplesAmbiguityResolution
         tbb
         Core
+        MathCore
         Tree
         RIO
         ${Geant4_LIBRARIES}

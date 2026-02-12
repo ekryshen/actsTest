@@ -31,10 +31,14 @@ class MySpacePointMaker final : public IAlgorithm {
   MySpacePointMaker(Config cfg, Acts::Logging::Level lvl);
   ProcessCode execute(const AlgorithmContext& ctx) const override;
   const Config& config() const { return m_cfg; }
+  double analytic(std::vector<double> &a, std::vector<double> &b, std::vector<double> &g, std::vector<double> &s, 
+                  double &t, double &k, double &dt, double &dk, bool debug = 0) const;
+  
+  double helix(std::vector<double> &z, std::vector<double> &c, std::vector<double> &s, std::vector<double> &g, 
+               std::vector<double> &d, double &tx, double &ty, double &p, bool debug = 0) const;
 
  private:
   Config m_cfg;
-
   std::optional<IndexSourceLink::SurfaceAccessor> m_slSurfaceAccessor;
   Acts::SpacePointBuilder<SimSpacePoint> m_spacePointBuilder;
   ReadDataHandle<MeasurementContainer> m_inputMeasurements{this, "InputMeasurements"};
