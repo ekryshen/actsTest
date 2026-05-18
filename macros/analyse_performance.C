@@ -9,6 +9,7 @@ R__LOAD_LIBRARY(libactsTestLib.so)
 #include "TH2D.h"
 #include "TCanvas.h"
 #include "ActsFatras/EventData/Barcode.hpp"
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "tree_summary.C"
 #include "MyFtdGeo.h"
 #include "MyFtdDetector.h"
@@ -20,6 +21,7 @@ const int shift = 2;
 const int minMeasPerCand = 3;
 const float minMajFrac = 0.74;
 MyFtdGeo* ftdGeo = nullptr;
+//MpdFtdGeo* ftdGeo = nullptr;
 
 bool isGoodFtd(int64_t layerMask, int minHits = 5){
   vector<int> nHits(nStations,0); // number of hits per station
@@ -110,11 +112,13 @@ bool isGoodSeed(int64_t layerMask, int minHits = 5){
   return 1;
 }
 
-void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
-//void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
+//void analyse_performance(TString dir = "acts/", double etaMean = 1.6, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
+//void analyse_performance(TString dir = "acts/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
+void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
 //void analyse_performance(TString dir = "../build/ruvdup90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
 // gStyle->SetOptStat(0);
   ftdGeo = new MyFtdGeo();
+// ftdGeo = new MpdFtdGeo();
   #define axisPt 20,0.,1.
   #define axisPhi 90,-M_PI,M_PI
   #define axisEta 50,1.5,2.0
@@ -142,6 +146,10 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
   TH1D* hLayers = new TH1D("hLayers","",40,0,40);
   TH1D* hNLayers = new TH1D("hNLayers","layers",40,0,40);
   TH1D* hNTracks = new TH1D("hNTracks","",10000,0,10000);
+  
+  TH2D* hResDvsPtPi    = new TH2D("hResDvsPtPi","",axisPt,200,-10,10);
+  TH2D* hResDvsPtPr    = new TH2D("hResDvsPtPr","",axisPt,200,-10,10);
+  
   // setup particles
   TFile* fPart = new TFile(TString(dir + "particles.root"));
   TTree* tPart = (TTree*) fPart->Get("particles");
@@ -168,7 +176,11 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
   tPart->SetBranchAddress("phi",&part_phi);  
   tPart->SetBranchAddress("number_of_hits",&part_mid); // mother id
 
-  int nEvents = tPart->GetEntries();
+  UInt_t nEvents = 0;
+  for (int ev=0;ev<tPart->GetEntries();ev++){
+    tPart->GetEntry(ev);
+    if (part_event_id + 1 > nEvents) nEvents = part_event_id + 1;
+  }
 
   vector<bool> vGoodEvent(nEvents,0);
   vector<vector<int64_t>> vFtdLayerMask(nEvents);
@@ -179,7 +191,8 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
   vector<vector<int>> vSpoints2(nEvents);
   vector<vector<int>> vSpoints4(nEvents);
   vector<vector<TVector3>> vRcVecP(nEvents);  
-  for (int ev=0;ev<nEvents;ev++){ // unordered events (note: ev is not thread safe)
+  vector<vector<float>> vRcD(nEvents);  
+  for (int ev=0;ev<tPart->GetEntries();ev++){ // unordered events (note: ev is not thread safe)
     tPart->GetEntry(ev);
     int nParts = part_pdg->size();
     // printf("nParts=%d\n",nParts);
@@ -193,21 +206,22 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
     vSeeds[part_event_id].resize(nParts+1,0);
     vNumberOfMatched[part_event_id].resize(nParts+1,0);
     vRcVecP[part_event_id].resize(nParts+1);
+    vRcD[part_event_id].resize(nParts+1);
   }
-
+  
   printf("fill match array\n");
   TFile* fTrack = new TFile(TString(dir + (refit ? "trackrefit.root" : "tracksummary.root")) );
   TTree* tTrack = (TTree*) fTrack->Get("tracksummary");
   SetBranchAddresses(tTrack);
 
-  for (int ev=0; ev<nEvents; ev++){ // unordered events (note: ev is not thread safe)
+  for (int ev=0; ev<tTrack->GetEntries(); ev++){ // unordered events (note: ev is not thread safe)
     if (ev%10000==0) printf("Event = %d\n",ev);
     tTrack->GetEntry(ev);
-    hNTracks->Fill(m_majorityParticleId->size());
-    if (m_majorityParticleId->size()>100) continue;
+    hNTracks->Fill(m_majorityParticleId_particle->size());
+    if (m_majorityParticleId_particle->size()>100) continue;
     vGoodEvent[m_eventNr]=1;
-    for (int it=0; it<m_majorityParticleId->size(); it++){
-      int ip = ActsFatras::Barcode().withData(m_majorityParticleId->at(it)).particle();
+    for (int it=0; it<m_majorityParticleId_particle->size(); it++){
+      int ip = m_majorityParticleId_particle->at(it);
       if (ip<1) continue;
       if (vMatched[m_eventNr][ip]<1) vMatched[m_eventNr][ip]=1;
       if (!m_hasFittedParams->at(it)) continue;
@@ -223,6 +237,7 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
       double theta = m_eTHETA_fit->at(it);
       double phi = m_ePHI_fit->at(it);
       vRcVecP[m_eventNr][ip].SetMagThetaPhi(fabs(1./qp), theta, phi);
+      vRcD[m_eventNr][ip] = m_eLOC0_fit->at(it);
       hNLayers->Fill(layers.size());
     }
   }
@@ -233,9 +248,9 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
   int32_t meas_event_id;
   int32_t meas_volume_id;
   int32_t meas_layer_id;
-  vector<vector<uint32_t>> meas_particles; auto pmeas_particles = &meas_particles;
+  vector<uint32_t> meas_particles; auto pmeas_particles_particle = &meas_particles;
   tMeas->SetBranchAddress("event_nr",&meas_event_id);
-  tMeas->SetBranchAddress("particles",&pmeas_particles);
+  tMeas->SetBranchAddress("particles_particle",&pmeas_particles_particle);
   tMeas->SetBranchAddress("volume_id",&meas_volume_id);
   tMeas->SetBranchAddress("layer_id",&meas_layer_id);
 
@@ -251,7 +266,7 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
     }
     vMeasParticleIds[meas_event_id].push_back(vector<uint32_t>(meas_particles.size()));
     for (int i=0;i<meas_particles.size();i++){
-      int ip = meas_particles[i][2]; // counted from 1
+      int ip = meas_particles[i]; // counted from 1
       vMeasParticleIds[meas_event_id].back()[i] = ip;
       SETBIT(vFtdLayerMask[meas_event_id][ip], (meas_layer_id - shift));
     }
@@ -259,7 +274,7 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
 
   TFile* fSpacepoints = new TFile(dir + "spacepoints.root");
   TTree* tSpacepoints = (TTree*) fSpacepoints->Get("spacepoints");
-  tSpacepoints->Print();
+  //tSpacepoints->Print();
   float sx;
   float sy;
   float sz;
@@ -336,7 +351,7 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
     }
   }
 
-  for (int ev=0;ev<nEvents;ev++){ // unordered events (note: ev is not thread safe)
+  for (int ev=0;ev<tPart->GetEntries();ev++){ // unordered events (note: ev is not thread safe)
     tPart->GetEntry(ev);
     if (!vGoodEvent[part_event_id]) continue;
     for (int i=0;i<part_pdg->size();i++){ // particles
@@ -348,7 +363,7 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
       float vz = part_vz->at(i);
       float pt = part_pt->at(i);
       float eta = part_eta->at(i);
-      float phi = part_phi->at(i);    
+      float phi = part_phi->at(i);
       if (abs(eta-etaMean)>etaDif || abs(vz)>1.) continue;
       // TODO write seedable selection based on availability of spacepoints
       if (vSpoints0[part_event_id][ip]==0) continue;
@@ -377,8 +392,11 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
       if (abs(pdg)==2212) hRcEtaPr->Fill(eta);
       if (abs(pdg)== 211) hNumberOfMatchedPi->Fill(pt,vNumberOfMatched[part_event_id][ip]);
       double ptRC = vRcVecP[part_event_id][ip].Perp();
+      double d = vRcD[part_event_id][ip];
       if (abs(pdg)== 211) hPtResVsPtPi->Fill(pt,(ptRC-pt)/pt);
       if (abs(pdg)==2212) hPtResVsPtPr->Fill(pt,(ptRC-pt)/pt);
+      if (abs(pdg)== 211) hResDvsPtPi->Fill(pt,d/10.);
+      if (abs(pdg)== 211) hResDvsPtPr->Fill(pt,d/10.);
     }
   }
 
@@ -437,6 +455,9 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
   hRcEffEtaPi->Divide(hRcEtaPi, hSeedEtaPi, 1, 1, "B");
   hRcEffEtaPi->Draw();
 
+  new TCanvas;
+  hResDvsPtPi->Draw();
+
   auto* fout = new TFile(dir +Form("tracking_performance_%.2f.root",etaMean), "recreate");
   hSeedPtPi->Write();
   hSeedPtPr->Write();
@@ -462,7 +483,9 @@ void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, 
   hPtResVsPtPi->Write();
   hPtResVsPtPr->Write();
   hNTracks->Write();
-  
+  hResDvsPtPi->Write();
+  hResDvsPtPr->Write();
+
   fout->Close();
 
 }

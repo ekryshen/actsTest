@@ -19,7 +19,7 @@ set(SIO_DIR ${SW}/LCIO/latest/lib/cmake/SIO)
 set(EDM4HEP_DIR ${SW}/EDM4hep/latest/lib/cmake/EDM4HEP)
 set(podio_DIR ${SW}/podio/latest/lib/cmake/podio)
 set(HEPMC3_DIR ${SW}/HepMC3/latest/share/HepMC3/cmake)
-set(XercesC_ROOT "${SW}/xerces-c/latest")
+set(XercesC_ROOT ${SW}/xerces-c/latest)
 
 find_package(Geant4 REQUIRED vis_all ui_all)
 include(${Geant4_USE_FILE})
