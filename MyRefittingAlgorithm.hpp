@@ -41,8 +41,8 @@ class MyCalibrator {
     Acts::visit_measurement(measurement.size(), [&](auto N) -> void {
         constexpr std::size_t kMeasurementSize = decltype(N)::value;
         const auto fixedMeasurement = static_cast<ConstFixedBoundMeasurementProxy<kMeasurementSize>>(measurement);
-        Acts::ActsVector<kMeasurementSize> calibratedParameters = fixedMeasurement.parameters();
-        Acts::ActsSquareMatrix<kMeasurementSize> calibratedCovariance = fixedMeasurement.covariance();
+        Acts::Vector<kMeasurementSize> calibratedParameters = fixedMeasurement.parameters();
+        Acts::SquareMatrix<kMeasurementSize> calibratedCovariance = fixedMeasurement.covariance();
         trackState.allocateCalibrated(kMeasurementSize);
         trackState.calibrated<kMeasurementSize>() = calibratedParameters;
         trackState.calibratedCovariance<kMeasurementSize>() = calibratedCovariance;

@@ -4,7 +4,7 @@
 
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/Geometry/CylinderVolumeHelper.hpp"
-#include "Acts/Geometry/DetectorElementBase.hpp"
+#include "Acts/Surfaces/SurfacePlacementBase.hpp"
 #include "Acts/Geometry/TrackingGeometry.hpp"
 #include "Acts/Material/HomogeneousSurfaceMaterial.hpp"
 #include "Acts/Material/HomogeneousVolumeMaterial.hpp"
@@ -12,18 +12,20 @@
 #include "MyFtdGeo.h"
 #include "BaseTpcSectorGeo.h"
 
-class MyDetectorElement : public Acts::DetectorElementBase {
+class MyDetectorElement : public Acts::SurfacePlacementBase {
 public:
   MyDetectorElement(std::shared_ptr<const Acts::Transform3> transform, std::shared_ptr<Acts::Surface> surface,
                     double thickness)
-    : Acts::DetectorElementBase(), fTransform(transform), fSurface(surface), fThickness(thickness) {
+    : fTransform(transform), fSurface(surface), fThickness(thickness) {
   }
 
-  const Acts::Transform3 &transform(const Acts::GeometryContext &gctx) const { return *fTransform; }
+  const Acts::Transform3 &localToGlobalTransform(const Acts::GeometryContext &gctx) const override { return *fTransform; }
 
-  const Acts::Surface &surface() const { return *fSurface; }
+  const Acts::Surface &surface() const override { return *fSurface; }
 
-  Acts::Surface &surface() { return *fSurface; }
+  Acts::Surface &surface() override { return *fSurface; }
+
+  bool isSensitive() const override { return true; }
 
   double thickness() const { return fThickness; }
 
@@ -162,7 +164,7 @@ private:
     fGeoIdToTpcSecRow.clear();
     const auto& surfaceByIdentifier = geo->geoIdSurfaceMap();
     for (auto surfId : surfaceByIdentifier) {
-      const auto* detEl = dynamic_cast<const MyDetectorElement*>(surfId.second->associatedDetectorElement());
+      const auto* detEl = dynamic_cast<const MyDetectorElement*>(surfId.second->surfacePlacement());
       if (detEl == nullptr)
         continue;
       if (detEl->name().find("TPC") == std::string::npos)
@@ -181,7 +183,7 @@ private:
     fGeoIdToFtdLayer.clear();
     const auto& surfaceByIdentifier = geo->geoIdSurfaceMap();
     for (auto surfId : surfaceByIdentifier) {
-      const auto* detEl = dynamic_cast<const MyDetectorElement*>(surfId.second->associatedDetectorElement());
+      const auto* detEl = dynamic_cast<const MyDetectorElement*>(surfId.second->surfacePlacement());
       if (detEl == nullptr)
         continue;
       if (detEl->name().find("FTD") == std::string::npos)

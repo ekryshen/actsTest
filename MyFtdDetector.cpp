@@ -25,7 +25,7 @@ using namespace Acts::UnitConstants;
 using namespace Acts::UnitLiterals;
 using std::numbers::pi;
 
-MyFtdDetector::MyFtdDetector()
+MyFtdDetector::MyFtdDetector() : fGeoCtx(Acts::GeometryContext::dangerouslyDefaultConstruct())
 {
   fFtdGeo = std::make_shared<MyFtdGeo>();
   fSecGeo = std::make_shared<BaseTpcSectorGeo>();
@@ -200,7 +200,7 @@ std::shared_ptr<Acts::TrackingVolume> MyFtdDetector::CreateFTD(bool isPos, bool 
         auto detElement = std::make_shared<MyFtdDetectorElement>(std::make_shared<const Acts::Transform3>(trafo), surface, thickness);
         detElement->setName(Form("%s%d", volName, i));
         detElement->setLayer(i);
-        surface->assignDetectorElement(*detElement);
+        surface->assignSurfacePlacement(*detElement);
         fDetectorStoreFtd.push_back(std::move(detElement));
         continue;
       }
@@ -227,7 +227,7 @@ std::shared_ptr<Acts::TrackingVolume> MyFtdDetector::CreateFTD(bool isPos, bool 
         auto detElement = std::make_shared<MyFtdDetectorElement>(std::make_shared<const Acts::Transform3>(stransform), surface, thickness);
         detElement->setName(Form("%s%d_%d", volName, i, iTube));
         detElement->setLayer(i);
-        surface->assignDetectorElement(*detElement);
+        surface->assignSurfacePlacement(*detElement);
         fDetectorStoreFtd.push_back(std::move(detElement));
         vSurfaces.push_back(std::move(surface));
       }
@@ -356,7 +356,7 @@ void MyFtdDetector::CreateTrackingGeometry(bool addFtd, bool addROC, bool addFla
         detElement->setName(Form("TPC_sec%d_row%d", sec, i));
         detElement->setSector(sec);
         detElement->setPadRow(i);
-        surface->assignDetectorElement(*detElement);
+        surface->assignSurfacePlacement(*detElement);
         fDetectorStoreTpc.push_back(std::move(detElement));
 
         auto surfArr = std::make_unique<Acts::SurfaceArray>(surface);

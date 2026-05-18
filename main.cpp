@@ -1,3 +1,4 @@
+#include "TChain.h"
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/EventData/SourceLink.hpp"
@@ -12,7 +13,7 @@
 #include "ActsExamples/Framework/Sequencer.hpp"
 #include "ActsExamples/Fatras/FatrasSimulation.hpp"
 #include "ActsExamples/Digitization/DigitizationAlgorithm.hpp"
-#include "ActsExamples/TrackFinding/SeedingAlgorithm.hpp"
+#include "ActsExamples/TrackFinding/GridTripletSeedingAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/SpacePointMaker.hpp"
 #include "ActsExamples/TrackFinding/TrackParamsEstimationAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/TrackFindingAlgorithm.hpp"
@@ -23,7 +24,7 @@
 #include "ActsExamples/Io/Root/RootSimHitReader.hpp"
 #include "ActsExamples/Io/Root/RootSimHitWriter.hpp"
 #include "ActsExamples/Io/Root/RootMeasurementWriter.hpp"
-#include "ActsExamples/Io/Root/RootSpacepointWriter.hpp"
+#include "ActsExamples/Io/Root/RootSpacePointWriter.hpp"
 #include "ActsExamples/Io/Root/RootSeedWriter.hpp"
 #include "ActsExamples/Io/Root/RootTrackStatesWriter.hpp"
 #include "ActsExamples/Io/Root/RootTrackSummaryWriter.hpp"
@@ -54,7 +55,7 @@ int main(int argc, char *argv[]){
   //ROOT::EnableThreadSafety();
 
   TString inputDir = "none";
-  TString outputDir = "ruvdup90";
+  TString outputDir = "ruv90";
   //TString outputDir = "ruv90";
   int nThreads = 10;
   int nEvents = 10;
@@ -63,8 +64,8 @@ int main(int argc, char *argv[]){
   double etaMax = 1.951;
   double ptMin = 0.2;
   double ptMax = 1.0;
-  int minMeasPerCand = 3;
-  bool doDuplicateStrawMeasurements = true;
+  int minMeasPerCand = 4;
+  bool doDuplicateStrawMeasurements = false;
 
   Acts::PdgParticle pdgCode = Acts::ePionPlus; //Acts::eProton;
 
@@ -185,7 +186,7 @@ int main(int argc, char *argv[]){
 
   for (auto surfId : surfaceByIdentifier) {
     auto id = surfId.first;
-    const auto* detEl = dynamic_cast<const MyDetectorElement*>(surfId.second->associatedDetectorElement());
+    const auto* detEl = dynamic_cast<const MyDetectorElement*>(surfId.second->surfacePlacement());
     if (detEl == nullptr)
       continue;
     if (detEl->name().find("FTD") != std::string::npos) {
@@ -261,38 +262,27 @@ int main(int argc, char *argv[]){
   double vzMax = 20;
   double radLengthPerSeed = 0.01;
 
-  ActsExamples::SeedingAlgorithm::Config seedingCfg;
+  ActsExamples::GridTripletSeedingAlgorithm::Config seedingCfg;
   seedingCfg.inputSpacePoints = {spacepoints};
   seedingCfg.outputSeeds = seeds;
-  seedingCfg.seedFinderOptions.bFieldInZ = bz*Acts::UnitConstants::T;
-  seedingCfg.seedFinderConfig.useDetailedDoubleMeasurementInfo = true;
-  seedingCfg.seedFinderConfig.minPt              = 0.11_GeV;
-  seedingCfg.seedFinderConfig.deltaZMax          = (positions[iM] - positions[iB])*cm + 10_mm;
-  seedingCfg.seedFinderConfig.deltaRMax          = (1-positions[iM]/positions[iF])*rMaxStation*cm + 1_mm;
-  seedingCfg.seedFinderConfig.zMin               = positions[iB]*cm - 1_mm;
-  seedingCfg.seedFinderConfig.zMax               = positions[iF]*cm + 1_mm;
-  seedingCfg.seedFinderConfig.rMin               = ftdGeo->GetLayerRMin(iB)*cm;
-  seedingCfg.seedFinderConfig.rMax               = ftdGeo->GetLayerRMax(iF)*cm;
-  seedingCfg.seedFinderConfig.rMinMiddle         = ftdGeo->GetLayerRMin(iM)*cm;
-  seedingCfg.seedFinderConfig.rMaxMiddle         = ftdGeo->GetLayerRMax(iM)*cm;
-  seedingCfg.seedFinderConfig.cotThetaMax        = 7.0;  
-  seedingCfg.seedFinderConfig.impactMax          = ftdGeo->GetLayerRMin(iB)*cm - 10_mm;
-  seedingCfg.seedFinderConfig.collisionRegionMin = -vzMax*cm; // important at low momenta due to mult scattering effects
-  seedingCfg.seedFinderConfig.collisionRegionMax = +vzMax*cm; // important at low momenta due to mult scattering effects
-  seedingCfg.seedFinderConfig.radLengthPerSeed   = radLengthPerSeed;
-  seedingCfg.seedFinderConfig.maxSeedsPerSpM = 5;
-
-  // copy relevant options to grid config
-  seedingCfg.gridConfig.rMax        = seedingCfg.seedFinderConfig.rMax;
-  seedingCfg.gridConfig.zMin        = seedingCfg.seedFinderConfig.zMin;
-  seedingCfg.gridConfig.zMax        = seedingCfg.seedFinderConfig.zMax;
-  seedingCfg.gridConfig.cotThetaMax = seedingCfg.seedFinderConfig.cotThetaMax;
-  seedingCfg.gridConfig.deltaRMax   = seedingCfg.seedFinderConfig.deltaRMax;
-  seedingCfg.gridConfig.impactMax   = seedingCfg.seedFinderConfig.impactMax;
-  seedingCfg.gridConfig.minPt       = seedingCfg.seedFinderConfig.minPt;
-  seedingCfg.gridOptions.bFieldInZ  = seedingCfg.seedFinderOptions.bFieldInZ;
-
-  seedingCfg.seedFilterConfig.maxSeedsPerSpM = seedingCfg.seedFinderConfig.maxSeedsPerSpM;
+  seedingCfg.bFieldInZ = bz;
+  seedingCfg.minPt              = 0.11_GeV;
+  seedingCfg.cotThetaMax        = 4.0;
+  seedingCfg.impactMax          = ftdGeo->GetLayerRMin(iB)*cm - 10_mm;
+  seedingCfg.deltaRMax          = (1-positions[iM]/positions[iF])*rMaxStation*cm + 1_mm;
+  seedingCfg.rMin               = ftdGeo->GetLayerRMin(iB)*cm;
+  seedingCfg.rMax               = ftdGeo->GetLayerRMax(iF)*cm;
+  seedingCfg.zMin               = positions[iB]*cm - 1_mm;
+  seedingCfg.zMax               = positions[iF]*cm + 1_mm;
+  seedingCfg.rMinMiddle         = ftdGeo->GetLayerRMin(iM)*cm;
+  seedingCfg.rMaxMiddle         = ftdGeo->GetLayerRMax(iM)*cm;
+  seedingCfg.deltaZMax          = (positions[iM] - positions[iB])*cm + 10_mm;
+  seedingCfg.collisionRegionMin = -50.*cm; // important at low momenta due to mult scattering effects
+  seedingCfg.collisionRegionMax = +40.*cm; // important at low momenta due to mult scattering effects
+  // seedingCfg.helixCutTolerance  = 0.1;
+  // seedingCfg.sigmaScattering    = 200;
+  seedingCfg.radLengthPerSeed   = radLengthPerSeed;
+  seedingCfg.maxSeedsPerSpM = 5;
 
   // Parameter Estimation from seeds
   ActsExamples::TrackParamsEstimationAlgorithm::Config paramsEstimationCfg;
@@ -382,8 +372,8 @@ int main(int argc, char *argv[]){
   measWriterCfg.filePath = TString(outputDir+"measurements.root").Data();
 
   // SpacepointWriter config
-  ActsExamples::RootSpacepointWriter::Config spWriterCfg;
-  spWriterCfg.inputSpacepoints = spacepoints;
+  ActsExamples::RootSpacePointWriter::Config spWriterCfg;
+  spWriterCfg.inputSpacePoints = spacepoints;
   spWriterCfg.filePath = TString(outputDir+"spacepoints.root").Data();
 
   ActsExamples::RootSeedWriter::Config seedWriterCfg;
@@ -456,7 +446,7 @@ int main(int argc, char *argv[]){
 //  sequencer.addAlgorithm(std::make_shared<ActsExamples::SpacePointMaker>(spCfg, logLevel));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::MySpacePointMaker>(spCfg, logLevel));
 
-  sequencer.addAlgorithm(std::make_shared<ActsExamples::SeedingAlgorithm>(seedingCfg, logLevel));
+  sequencer.addAlgorithm(std::make_shared<ActsExamples::GridTripletSeedingAlgorithm>(seedingCfg, logLevel));
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackParamsEstimationAlgorithm>(paramsEstimationCfg, logLevel));
 
   sequencer.addAlgorithm(std::make_shared<ActsExamples::TrackFindingAlgorithm>(trackFindingCfg, logLevelF));
@@ -468,9 +458,9 @@ int main(int argc, char *argv[]){
   sequencer.addWriter(std::make_shared<ActsExamples::RootParticleWriter>(particleWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootSimHitWriter>(simhitWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootMeasurementWriter>(measWriterCfg, logLevel));
-  sequencer.addWriter(std::make_shared<ActsExamples::RootSpacepointWriter>(spWriterCfg, logLevel));
+  sequencer.addWriter(std::make_shared<ActsExamples::RootSpacePointWriter>(spWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootSeedWriter>(seedWriterCfg, logLevel));
-  sequencer.addWriter(std::make_shared<ActsExamples::RootTrackParameterWriter>(paramWriterCfg, logLevel));
+  //sequencer.addWriter(std::make_shared<ActsExamples::RootTrackParameterWriter>(paramWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootTrackStatesWriter>(trackStatesWriterCfg, logLevel));
   sequencer.addWriter(std::make_shared<ActsExamples::RootTrackSummaryWriter>(trackSummaryWriterCfg, logLevel));
   // sequencer.addWriter(std::make_shared<MyTrackWriter>(trackWriterCfg, logLevel));

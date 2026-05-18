@@ -283,7 +283,7 @@ ActsExamples::ProcessCode ActsExamples::MySpacePointMaker::execute(const Algorit
     const Acts::Surface* surface = m_slSurfaceAccessor.value()(slink);
     const auto [par, cov] = accessor(slink);
     auto xyz = surface->localToGlobal(ctx.geoContext, Acts::Vector2(par[0],0), Acts::Vector3());
-    auto rot = surface->transform(ctx.geoContext).rotation();
+    auto rot = surface->localToGlobalTransform(ctx.geoContext).rotation();
     double x = xyz[0];
     double y = xyz[1];
     double z = xyz[2];
