@@ -54,7 +54,11 @@ using namespace std;
   /// The number of hits from majority particle
   std::vector<unsigned int>* m_nMajorityHits = new std::vector<unsigned int>;
   /// The particle Id of the majority particle
-  std::vector<std::vector<std::uint32_t>>* m_majorityParticleId = new std::vector<std::vector<std::uint32_t>>;
+  std::vector<std::uint32_t>* m_majorityParticleId_vertex_primary = new std::vector<std::uint32_t>;
+  std::vector<std::uint32_t>* m_majorityParticleId_vertex_secondary = new std::vector<std::uint32_t>;
+  std::vector<std::uint32_t>* m_majorityParticleId_particle = new std::vector<std::uint32_t>;
+  std::vector<std::uint32_t>* m_majorityParticleId_generation = new std::vector<std::uint32_t>;
+  std::vector<std::uint32_t>* m_majorityParticleId_sub_particle = new std::vector<std::uint32_t>;
   /// Charge of majority particle
   std::vector<int>* m_t_charge = new std::vector<int>;
   /// Time of majority particle
@@ -132,8 +136,7 @@ void SetBranchAddresses(TTree* m_inputChain){
   m_inputChain->SetBranchAddress("measurementLayer", &m_measurementLayer);
   m_inputChain->SetBranchAddress("outlierVolume", &m_outlierVolume);
   m_inputChain->SetBranchAddress("outlierLayer", &m_outlierLayer);
-
-  m_inputChain->SetBranchAddress("majorityParticleId", &m_majorityParticleId);
+  m_inputChain->SetBranchAddress("majorityParticleId_particle", &m_majorityParticleId_particle);
   m_inputChain->SetBranchAddress("nMajorityHits", &m_nMajorityHits);
   m_inputChain->SetBranchAddress("t_charge", &m_t_charge);
   m_inputChain->SetBranchAddress("t_time", &m_t_time);
