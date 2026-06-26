@@ -1,6 +1,6 @@
-R__ADD_INCLUDE_PATH(/home/ekryshen/mpd/actsTest/build/stage/include)
-R__ADD_LIBRARY_PATH(/home/ekryshen/mpd/actsTest/build/stage/lib)
-R__LOAD_LIBRARY(libactsTestLib.so)
+//R__ADD_INCLUDE_PATH(/home/ekryshen/mpd/actsTest/build/stage/include)
+//R__ADD_LIBRARY_PATH(/home/ekryshen/mpd/actsTest/build/stage/lib)
+//R__LOAD_LIBRARY(libactsTestLib.so)
 #include "TFile.h"
 #include "TTree.h"
 #include "TClonesArray.h"
@@ -11,8 +11,8 @@ R__LOAD_LIBRARY(libactsTestLib.so)
 #include "ActsFatras/EventData/Barcode.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "tree_summary.C"
-#include "MyFtdGeo.h"
-#include "MyFtdDetector.h"
+//#include "MyFtdGeo.h"
+//#include "MyFtdDetector.h"
 
 
 const int nStations = 5;
@@ -20,8 +20,23 @@ const int nLayersPerStation = 10;
 const int shift = 2;
 const int minMeasPerCand = 3;
 const float minMajFrac = 0.74;
-MyFtdGeo* ftdGeo = nullptr;
-//MpdFtdGeo* ftdGeo = nullptr;
+//MyFtdGeo* ftdGeo = nullptr;
+MpdFtdGeo* ftdGeo = nullptr;
+
+const int nSeedingOptions = 10;
+int v[nSeedingOptions][3]={
+  {0, 1, 2},
+  {0, 1, 3},
+  {0, 1, 4},
+  {0, 2, 3},
+  {0, 2, 4},
+  {0, 3, 4},
+  {1, 2, 3},
+  {1, 2, 4},
+  {1, 3, 4},
+  {2, 3, 4}
+};
+
 
 bool isGoodFtd(int64_t layerMask, int minHits = 5){
   vector<int> nHits(nStations,0); // number of hits per station
@@ -97,28 +112,42 @@ bool isGoodSeed(int64_t layerMask, int minHits = 5){
       if (type==6) nType6[st] += TESTBIT(layerMask,layerIndex);
     }
   }
-  if (nHits[0]<minMeasPerCand) return 0;
-  if (nHits[2]<minMeasPerCand) return 0;
-  if (nHits[4]<minMeasPerCand) return 0;
-  if (nType4[0]==0) return 0;
-  if (nType4[2]==0) return 0;
-  if (nType4[4]==0) return 0;
-  if (nType5[0]==0) return 0;
-  if (nType5[2]==0) return 0;
-  if (nType5[4]==0) return 0;
-  if (nType6[0]==0) return 0;
-  if (nType6[2]==0) return 0;
-  if (nType6[4]==0) return 0;
-  return 1;
+ 
+  bool isGoodSeed = 0;
+  for (int i=0;i<nSeedingOptions;i++){
+    int i0 = v[i][0];
+    int i1 = v[i][1];
+    int i2 = v[i][2];        
+    if (nHits[i0]<minMeasPerCand) continue;
+    if (nHits[i1]<minMeasPerCand) continue;
+    if (nHits[i2]<minMeasPerCand) continue;
+    if (nType4[i0]==0) continue;
+    if (nType4[i1]==0) continue;
+    if (nType4[i2]==0) continue;
+    if (nType5[i0]==0) continue;
+    if (nType5[i1]==0) continue;
+    if (nType5[i2]==0) continue;
+    if (nType6[i0]==0) continue;
+    if (nType6[i1]==0) continue;
+    if (nType6[i2]==0) continue;
+    isGoodSeed = 1;
+  }
+  return isGoodSeed;
 }
 
 //void analyse_performance(TString dir = "acts/", double etaMean = 1.6, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
 //void analyse_performance(TString dir = "acts/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
-void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
+
+void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
+//void analyse_performance(TString dir = "../build/test/", double etaMean = 1.6, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
+//void analyse_performance(TString dir = "../build/test/", double etaMean = 1.9, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
+
+
+  //void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
 //void analyse_performance(TString dir = "../build/ruvdup90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
 // gStyle->SetOptStat(0);
-  ftdGeo = new MyFtdGeo();
-// ftdGeo = new MpdFtdGeo();
+//  ftdGeo = new MyFtdGeo();
+  ftdGeo = new MpdFtdGeo();
   #define axisPt 20,0.,1.
   #define axisPhi 90,-M_PI,M_PI
   #define axisEta 50,1.5,2.0
@@ -145,7 +174,7 @@ void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75,
   TH1D* hNumberOfMatchedPi = new TH1D("hNumberOfMatchedPi","",axisPt);
   TH1D* hLayers = new TH1D("hLayers","",40,0,40);
   TH1D* hNLayers = new TH1D("hNLayers","layers",40,0,40);
-  TH1D* hNTracks = new TH1D("hNTracks","",10000,0,10000);
+  TH1D* hNTracks = new TH1D("hNTracks","",1000,0,100000);
   
   TH2D* hResDvsPtPi    = new TH2D("hResDvsPtPi","",axisPt,200,-10,10);
   TH2D* hResDvsPtPr    = new TH2D("hResDvsPtPr","",axisPt,200,-10,10);
@@ -187,9 +216,7 @@ void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75,
   vector<vector<int>> vMatched(nEvents);
   vector<vector<int>> vNumberOfMatched(nEvents);
   vector<vector<int>> vSeeds(nEvents);
-  vector<vector<int>> vSpoints0(nEvents);
-  vector<vector<int>> vSpoints2(nEvents);
-  vector<vector<int>> vSpoints4(nEvents);
+  vector<vector<vector<int>>> vSpoints(5, vector<vector<int>>(nEvents));
   vector<vector<TVector3>> vRcVecP(nEvents);  
   vector<vector<float>> vRcD(nEvents);  
   for (int ev=0;ev<tPart->GetEntries();ev++){ // unordered events (note: ev is not thread safe)
@@ -200,9 +227,11 @@ void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75,
     vFtdLayerMask[part_event_id].resize(nParts+1,0);
     vMatched[part_event_id].resize(nParts+1,0);
     vMatched[part_event_id].resize(nParts+1,0);
-    vSpoints0[part_event_id].resize(nParts+1,0);    
-    vSpoints2[part_event_id].resize(nParts+1,0);    
-    vSpoints4[part_event_id].resize(nParts+1,0);    
+    vSpoints[0][part_event_id].resize(nParts+1,0);
+    vSpoints[1][part_event_id].resize(nParts+1,0);
+    vSpoints[2][part_event_id].resize(nParts+1,0);  
+    vSpoints[3][part_event_id].resize(nParts+1,0);  
+    vSpoints[4][part_event_id].resize(nParts+1,0);                
     vSeeds[part_event_id].resize(nParts+1,0);
     vNumberOfMatched[part_event_id].resize(nParts+1,0);
     vRcVecP[part_event_id].resize(nParts+1);
@@ -218,7 +247,7 @@ void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75,
     if (ev%10000==0) printf("Event = %d\n",ev);
     tTrack->GetEntry(ev);
     hNTracks->Fill(m_majorityParticleId_particle->size());
-    if (m_majorityParticleId_particle->size()>100) continue;
+    if (m_majorityParticleId_particle->size()>200) continue;
     vGoodEvent[m_eventNr]=1;
     for (int it=0; it<m_majorityParticleId_particle->size(); it++){
       int ip = m_majorityParticleId_particle->at(it);
@@ -312,9 +341,7 @@ void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75,
     float majFrac = (smajority - majorityId) * 10.;
     //printf("majorityId=%d majFrac=%f\n", majorityId, majFrac);
     if (majFrac > minMajFrac) {
-      if (station==0) vSpoints0[sevent_id][majorityId] += 1;
-      if (station==2) vSpoints2[sevent_id][majorityId] += 1;
-      if (station==4) vSpoints4[sevent_id][majorityId] += 1;
+      vSpoints[station][sevent_id][majorityId] += 1;      
     }
   }
 
@@ -366,9 +393,17 @@ void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75,
       float phi = part_phi->at(i);
       if (abs(eta-etaMean)>etaDif || abs(vz)>1.) continue;
       // TODO write seedable selection based on availability of spacepoints
-      if (vSpoints0[part_event_id][ip]==0) continue;
-      if (vSpoints2[part_event_id][ip]==0) continue;
-      if (vSpoints4[part_event_id][ip]==0) continue;
+      bool isSeedable = 0;
+      for (int i=0;i<nSeedingOptions;i++){
+        int i0 = v[i][0];
+        int i1 = v[i][1];
+        int i2 = v[i][2];        
+        if (vSpoints[i0][part_event_id][ip]==0) continue;
+        if (vSpoints[i1][part_event_id][ip]==0) continue;
+        if (vSpoints[i2][part_event_id][ip]==0) continue;
+        isSeedable = 1;
+      }
+      if (!isSeedable) continue;
       if (abs(pdg)== 211) hSeedablePtPi->Fill(pt);
       if (abs(pdg)==2212) hSeedablePtPr->Fill(pt);
       if (abs(pdg)== 211) hSeedablePhiPi->Fill(phi);
