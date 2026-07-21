@@ -135,16 +135,7 @@ bool isGoodSeed(int64_t layerMask, int minHits = 5){
   return isGoodSeed;
 }
 
-//void analyse_performance(TString dir = "acts/", double etaMean = 1.6, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
-//void analyse_performance(TString dir = "acts/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
-
-void analyse_performance(TString dir = "../build/test/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
-//void analyse_performance(TString dir = "../build/test/", double etaMean = 1.6, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
-//void analyse_performance(TString dir = "../build/test/", double etaMean = 1.9, double etaDif = 0.05, bool refit = 0, bool trackable = 1){
-
-
-  //void analyse_performance(TString dir = "../build/ruv90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
-//void analyse_performance(TString dir = "../build/ruvdup90/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
+void analyse_performance(TString dir = "acts/", double etaMean = 1.75, double etaDif = 0.2, bool refit = 0, bool trackable = 1){
 // gStyle->SetOptStat(0);
 //  ftdGeo = new MyFtdGeo();
   ftdGeo = new MpdFtdGeo();
